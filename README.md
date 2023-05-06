@@ -1,2 +1,2 @@
 # uNet
-uNET is a class that is an abstraction of a Node TCP Socket
+uNet is a class that is an abstraction of a Node TCP Socket
