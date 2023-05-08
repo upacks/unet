@@ -10,8 +10,8 @@
   "ts-module": "./src/index.ts",
   "scripts": {
     "start": "nodemon --delay 0.25 ./src/index.ts",
-    "build": "tsc",
-    "postinstall": "../typescript/bin/tsc -p tsconfig.json || exit 0;"
+    "build": "tsc -p tsconfig.json",
+    "postinstall": "(node -e \"if (! require('fs').existsSync('../typescript/bin/tsc')){process.exit(1)} \" && ../typescript/bin/tsc -p tsconfig.json) || exit 0;"
   },
   "dependencies": {
     "axios": "^1.2.2",
@@ -19,11 +19,9 @@
     "express": "^4.18.2",
     "express-fileupload": "^1.4.0",
     "ioredis": "^5.2.5",
-    "multer": "^1.4.5-lts.1",
     "socket.io": "^4.5.4",
     "socket.io-client": "^4.5.4",
-    "streamifier": "^0.1.1",
-    "utils": "upacks/uTils#1.0.1"
+    "utils": "upacks/utils#1.0.2"
   },
   "devDependencies": {
     "@types/node": "^18.11.18",
