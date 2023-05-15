@@ -1,7 +1,7 @@
 {
   "name": "unet",
   "version": "1.0.0",
-  "repository": "git@github.com:upacks/uNet.git",
+  "repository": "git@github.com:upacks/unet.git",
   "author": "gantulga.khuyag@gmail.com",
   "license": "MIT",
   "type": "commonjs",
