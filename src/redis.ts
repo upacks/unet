@@ -1,5 +1,5 @@
 import RedisIO from "ioredis"
-import { Uid, log } from 'utils'
+import { log, Uid } from 'utils'
 
 interface iRedisArgs {
     id?: string

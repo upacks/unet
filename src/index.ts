@@ -1,5 +1,7 @@
-export { Redis } from './redis'
-export { Host } from './host'
 export { Connection } from './connection'
+export { Host } from './host'
+export { Core, Proxy } from './proxy'
+export { Redis } from './redis'
 export { ReplicaMaster, ReplicaSlave } from './replication'
-export { NetHost, NetConnection } from './tcp'
+export { NetConnection, NetHost } from './tcp'
+
