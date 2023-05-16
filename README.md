@@ -6,6 +6,7 @@ uNet is a class that is an abstraction of a Node HTTP / TCP Socket
 # Host & Connection: HTTP Host and Client also provides a WebSocket connection.
 # ReplicaMaster & ReplicaSlave: Data replication using Sequelize over Host and NetHost.
 # Redis: Handles Redis connection between Hosts and NetHosts.
+# Proxy & Core: HTTP Proxy / Provides Redis integration
 ```
 ### Simple HTTP connection example
 ```javascript
