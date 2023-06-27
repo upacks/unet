@@ -1,0 +1,11 @@
+name: "upacks/unet"
+description: "****"
+author: "gantulga.khuyag"
+inputs:
+  milliseconds:
+    required: true
+    description: "****"
+    default: "****"
+runs:
+  using: "node16"
+  main: "dist/index.js"

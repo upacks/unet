@@ -2,7 +2,6 @@ import { PackageExists, Loop, log, moment, dateFormat } from 'utils'
 
 const name: string = 'sequelize'
 const { Op }: any = PackageExists(name) ? require(name) : { Op: {} }
-Op.or ? log.success('Replication is ready') : log.warn('Replication requires Sequelize')
 
 export class ReplicaMaster {
 
@@ -12,6 +11,8 @@ export class ReplicaMaster {
     onChangeCall = (...n) => true
 
     constructor({ me, name, table, debug, channel, limit, onPull, onSave, onTrigger, onChange }) {
+
+        Op.or ? null : log.warn('Master Replication requires Sequelize')
 
         this.name = me
         this.table = table
@@ -108,6 +109,8 @@ export class ReplicaSlave {
     onChangeCall = (...n) => true
 
     constructor({ me, name, table, channel, debug, retain, limit, onPull, onPush, onTrigger, onSave, onChange }) {
+
+        Op.or ? null : log.warn('Slave Replication requires Sequelize')
 
         this.table = table
         this.name = me
