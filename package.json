@@ -15,6 +15,10 @@
       "ts-import": "./src/index.ts"
     }
   },
+  "scripts": {
+    "start": "nodemon --delay 0.25 ./src/index.ts",
+    "build": "tsc -p tsconfig.json"
+  },
   "dependencies": {
     "axios": "^1.2.2",
     "cors": "^2.8.5",
