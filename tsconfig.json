@@ -6,9 +6,15 @@
       "allowSyntheticDefaultImports": true,
       "moduleResolution": "node",
       "noImplicitAny": false,
-      "sourceMap": false,
+      "allowJs": true,
+      "declaration": true,
+      "declarationMap": true,
+      "sourceMap": true,
       "outDir": "dist",
-      "baseUrl": "./src"
+      "baseUrl": "./src",
+      "typeRoots": [
+         "./node_modules/@types"
+      ]
    },
    "include": [
       "**/*.ts",
