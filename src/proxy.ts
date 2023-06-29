@@ -54,6 +54,7 @@ export class Core {
         const _app = http.createServer(app)
 
         app.get('/', (req, res) => res.status(200).send(`:)`))
+        app.get('/favicon.ico', (req, res) => res.status(204).end())
         app.get('/200', (req, res) => res.status(200).send(`:)`))
         app.get('/404', (req, res) => res.status(404).send(`:|`))
         app.get('/500', (req, res) => res.status(500).send(`:(`))
