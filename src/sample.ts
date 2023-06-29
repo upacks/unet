@@ -3,7 +3,14 @@
 import { Shell, Delay, Loop, log } from 'utils'
 
 import { NetClient, NetServer } from './tcp'
+import { Host } from './host'
 import { Proxy, Core } from './proxy'
+
+const HOST_SAMPLE = () => {
+
+    const API = new Host({ name: 'none' })
+
+}
 
 const PROXY_SAMPLE = () => {
 

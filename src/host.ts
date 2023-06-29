@@ -53,7 +53,12 @@ export class Host {
         this.server = http.createServer(this.app)
         this.server.setTimeout(this.timeout)
 
-        this.app.get(`/${this.name}/health`, (req, res) => res.status(200).send(`${this.name}-${Now()}`))
+        this.app.get(`/${this.name}/health`, (req, res) => res.status(200).json({
+            name: this.name,
+            pid: process.pid,
+            uptime: process.uptime(),
+            now: Now(),
+        }))
 
         this.io = new Server(this.server, {
             transports: ['websocket', 'polling'],
