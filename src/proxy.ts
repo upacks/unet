@@ -20,10 +20,16 @@ export class Proxy {
 
 }
 
+interface iCore {
+    port?: number // 8443
+    redisChannel?: string //  'expose'
+    keepAliveTimeout?: number // (90 * 1000) + (1000 * 2)
+    headersTimeout?: number // (90 * 1000) + (1000 * 4)
+}
+
 export class Core {
 
-    config = {
-        port0: 8080,
+    config: iCore = {
         port: 8443,
         redisChannel: 'expose',
         keepAliveTimeout: (90 * 1000) + (1000 * 2),
@@ -32,9 +38,9 @@ export class Core {
     store = {}
     redis
 
-    constructor(conf) {
+    constructor(conf: iCore = {}) {
 
-        this.config = conf
+        this.config = { ...this.config, ...conf }
         this.redis = Redis({})
         this.start()
 
@@ -42,22 +48,22 @@ export class Core {
 
     start = () => {
 
-        log.info(`Starting a new HTTP.Proxy ...`)
-
         // ==================== PROXY-SERVER ==================== //
 
         const app = express()
-        const ppp = express()
+        const _app = http.createServer(app)
 
-        const kapp = http.createServer(app)
+        app.get('/', (req, res) => res.status(200).send(`:)`))
+        app.get('/200', (req, res) => res.status(200).send(`:)`))
+        app.get('/404', (req, res) => res.status(404).send(`:|`))
+        app.get('/500', (req, res) => res.status(500).send(`:(`))
 
-        app.get('/', (req, res) => res.status(500).send(`Sorry:(`))
-        ppp.listen(this.config.port0)
-
-        const server = kapp.listen(this.config.port)
+        const server = _app.listen(this.config.port)
         const apiProxy = httpProxy.createProxyServer()
 
-        const getPath = (url) => { try { return (this.store[url.split('/')[1]]).http } catch (error) { return `http://localhost:${this.config.port0}` } }
+        const getPath = (url) => { try { return (this.store[url.split('/')[1]]).http } catch (error) { return `http://localhost:${this.config.port}/404` } }
+
+        log.info(`Proxy-Server [ STARTED ]`)
 
         // ==================== PROXY-HANDLERS ==================== //
 
@@ -67,12 +73,14 @@ export class Core {
 
             log.error(`While Proxying: ${err.message}`)
             try { res.writeHead(503, { 'Content-Type': 'text/plain' }) } catch (err) { }
-            res.end(`Under maintenance!`)
+            res.end(`Service unavailable!`)
 
         })
 
         server.keepAliveTimeout = this.config.keepAliveTimeout
         server.headersTimeout = this.config.headersTimeout
+
+        log.info(`Proxy-Handlers [ STARTED ]`)
 
         // ==================== REDIS-CLIENT ==================== //
 
@@ -87,6 +95,8 @@ export class Core {
                 const { name, http, ws } = JSON.parse(message)
                 this.store[name] = { http, ws }
             })
+
+            log.info(`Proxy-Redis [ STARTED ]`)
 
         }
 
