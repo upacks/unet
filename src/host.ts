@@ -3,16 +3,12 @@ import path from 'path'
 import http from 'http'
 import cors from 'cors'
 import express from 'express'
-import { Now, log, env } from 'utils'
+import { Loop, Now, log, env } from 'utils'
 import { Server } from "socket.io"
 import FileUpload from 'express-fileupload'
 
 import { Redis } from './redis'
 import { execute } from './util'
-
-const whoami = env.whoami ?? "Master"
-const ws = env.ws ?? "ws://127.0.0.1"
-const local = env.local ?? "http://127.0.0.1"
 
 // ==================== CLASS: HOST ==================== //
 
@@ -23,6 +19,9 @@ export interface iHost {
     timeout?: number /** request timeout **/
     redis?: boolean /** use redis **/
 }
+
+const ws = env.ws ?? "ws://127.0.0.1"
+const local = env.local ?? "http://127.0.0.1"
 
 export class Host {
 
@@ -70,10 +69,11 @@ export class Host {
             socket.on('disconnect', () => log.warn(`A client disconnected ${socket.id}`))
         })
 
-        if (conf.static) {
+        if (conf.static) { // ==================== EXPOSE_STATICS ==================== //
 
-            this.app.use(`/${this.name}`, express.static(path.join(__dirname, '..', '..', 'expose', conf.static)))
-
+            const html = fs.existsSync(`${conf.static}/public/index.html`) ? `${conf.static}/public/index.html` : `${conf.static}/dist/index.html`
+            this.app.use(`/${this.name}`, express.static(`${conf.static}/dist`))
+            this.app.use(`/${this.name}`, express.static(`${conf.static}/public`))
             this.app.use(FileUpload({ createParentPath: true }))
 
             this.app.post(`/${this.name}/upload`, async (req, res) => {
@@ -82,7 +82,7 @@ export class Host {
                         res.status(400).send({ status: false, message: 'No file uploaded' })
                     } else {
                         const file = req.files.file
-                        file.mv(path.join(__dirname, '..', '..', 'expose', conf.static, 'file/') + file.name)
+                        file.mv(`${conf.static}/public/file/${file.name}`)
                         res.send({ status: true, message: 'Uploaded', data: { name: file.name, mimetype: file.mimetype, size: file.size } })
                     }
                 } catch (err) {
@@ -92,21 +92,18 @@ export class Host {
 
             this.app.use(`/${this.name}`, (req, res) => {
 
-                fs.readFile(path.join(__dirname, '..', '..', 'expose', conf.static, 'provider.html'), (err, content) => {
+                fs.readFile(html, (err, content) => {
                     if (err) {
                         res.status(500).send(err.message)
                     } else {
                         const cb = this.requests[req.path] ?? this.requests['*'] ?? null
-                        cb ? execute(cb, req, res, content.toString())
-                            .then(e => res.send(e))
-                            .catch(e => res.status(500).send(`console.log(${e.message})`)) :
-                            res.status(404).send('console.log("Not found")')
+                        cb ? execute(cb, req, res, content.toString()).then(e => res.send(e)).catch(e => res.status(500).send(`console.log(${e.message})`)) : res.status(404).send('console.log("Not found")')
                     }
                 })
 
             })
 
-        } else {
+        } else { // ==================== EXPOSE_REST ==================== //
 
             this.app.use(`/${this.name}`, (req, res) => {
 
@@ -132,14 +129,19 @@ export class Host {
 
         }
 
-        this.app.use((err, req, res, next) => {
-            log.error(err.message)
-            res.status(500).send(err.message)
-        })
+        this.app.use((err, req, res, next) => log.error(err.message) && res.status(500).send(err.message))
 
         const server = this.server.listen(this.port, '0.0.0.0', () => {
-            this.redis && Pub.publish("expose", JSON.stringify({ name: this.name, http: `${local}:${server.address().port}`, ws: `${ws}:${server.address().port}`, whoami }))
-            log.success(`Created host: ${local}:${server.address().port}/${this.name}`)
+
+            if (log.success(`Created host: ${local}:${server.address().port}/${this.name}`) && this.redis) { /** @_RETRY_REQUIRED_ **/
+
+                const push = () => Pub.publish("expose", JSON.stringify({ name: this.name, http: `${local}:${server.address().port}`, ws: `${ws}:${server.address().port}` }))
+                const retry = Loop(() => push(), 2500)
+                Sub.subscribe('expose_reply', (err: any, e: string) => err ? log.error(err.message) : log.info(`Subscribed channels: ${e}`) && push())
+                Sub.on("message", (channel: string, message: string) => message === `${this.name}` && log.success(`${channel}: ${message}`) && clearInterval(retry))
+
+            }
+
         })
 
         server.keepAliveTimeout = (90 * 1000) + (1000 * 6)
