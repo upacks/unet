@@ -2,10 +2,15 @@ import express from 'express'
 import http from 'http'
 import httpProxy from 'http-proxy'
 import { log } from 'utils'
-
 import { Redis } from './redis'
 
-export class Proxy {
+export {
+    express,
+    httpProxy,
+    Proxy,
+}
+
+class Proxy {
 
     apiProxy
 
@@ -92,9 +97,12 @@ export class Core {
                 log.info(`Subscribed channels: ${e}`))
 
             this.redis.Sub.on("message", (channel, message) => {
+
                 log.success(`${channel}: ${message}`)
                 const { name, http, ws } = JSON.parse(message)
                 this.store[name] = { http, ws }
+                this.redis.Pub.publish("expose_reply", name)
+
             })
 
             log.info(`Proxy-Redis [ STARTED ]`)
