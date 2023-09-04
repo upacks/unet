@@ -30,18 +30,20 @@ interface iCore {
     redisChannel?: string //  'expose'
     keepAliveTimeout?: number // (90 * 1000) + (1000 * 2)
     headersTimeout?: number // (90 * 1000) + (1000 * 4)
+    auth?: any // Authorization
 }
 
 export class Core {
 
+    redis
+    store = {}
     config: iCore = {
         port: 8443,
         redisChannel: 'expose',
         keepAliveTimeout: (90 * 1000) + (1000 * 2),
         headersTimeout: (90 * 1000) + (1000 * 4),
+        auth: null,
     }
-    store = {}
-    redis
 
     constructor(conf: iCore = {}) {
 
@@ -63,6 +65,8 @@ export class Core {
         app.get('/200', (req, res) => res.status(200).send(`:)`))
         app.get('/404', (req, res) => res.status(404).send(`:|`))
         app.get('/500', (req, res) => res.status(500).send(`:(`))
+
+        this.config.auth && app.use(this.config.auth)
 
         const server = _app.listen(this.config.port)
         const apiProxy = httpProxy.createProxyServer()
