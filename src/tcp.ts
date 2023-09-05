@@ -6,15 +6,12 @@ interface iHostCb {
     (data: Net.Socket | any): void
 }
 
-interface iHeader {
-    id: string
-    payload: string
+interface ServerSocket extends Net.Socket {
+    authenticate: (token: string) => any | null /** Nullable **/
 }
 
-const createToken = () => {
-
-    jwt.sign({ data: 'foobar' }, 'secret', { expiresIn: '1h' })
-
+interface ClientSocket extends Net.Socket {
+    authenticate: (token: string) => void
 }
 
 export class NetServer {
@@ -26,7 +23,7 @@ export class NetServer {
     clients: Net.Socket[] = []
     secret: string
 
-    constructor({ host, port, secret }: { host?: string, port?: number, secret?: string }, cb: iHostCb) {
+    constructor({ host, port, secret }: { host?: string, port?: number, secret?: string }, cb: (client: ServerSocket) => void) {
 
         this.host = host ?? '127.0.0.1'
         this.port = port ?? 0
@@ -114,10 +111,10 @@ export class NetClient {
 
     client
     config
-    callback: (client: Net.Socket) => void
+    callback: (client: ClientSocket) => void
     last = Date.now()
 
-    constructor({ host, port, token }: { host?: string, port?: number, token?: string }, cb: (client: Net.Socket) => void) {
+    constructor({ host, port, token }: { host?: string, port?: number, token?: string }, cb: (client: ClientSocket) => void) {
 
         this.config = {
             host: host ?? '127.0.0.1',
