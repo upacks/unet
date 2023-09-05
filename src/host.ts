@@ -55,6 +55,7 @@ export class Host {
         this.app.get(`/${this.name}/health`, (req, res) => res.status(200).json({
             name: this.name,
             pid: process.pid,
+            port: this.port,
             uptime: process.uptime(),
             now: Now(),
         }))
@@ -132,6 +133,8 @@ export class Host {
         this.app.use((err, req, res, next) => log.error(err.message) && res.status(500).send(err.message))
 
         const server = this.server.listen(this.port, '0.0.0.0', () => {
+
+            this.port = server.address().port
 
             if (log.success(`Created host: ${local}:${server.address().port}/${this.name}`) && this.redis) { /** @_RETRY_REQUIRED_ **/
 
