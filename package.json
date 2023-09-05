@@ -1,6 +1,6 @@
 {
   "name": "unet",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "repository": "git@github.com:upacks/unet.git",
   "author": "gantulga.khuyag@gmail.com",
   "license": "MIT",
@@ -18,7 +18,7 @@
   "scripts": {
     "start": "nodemon --delay 0.25 ./src/index.ts",
     "build": "tsc -p tsconfig.json",
-    "release": "yarn version --patch && git add . && git push"
+    "release": "git add . && yarn version --patch && git add . && git push"
   },
   "dependencies": {
     "axios": "^1.2.2",

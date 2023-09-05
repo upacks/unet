@@ -114,10 +114,10 @@ export class NetClient {
 
     client
     config
-    callback
+    callback: (client: Net.Socket) => void
     last = Date.now()
 
-    constructor({ host, port, token }: { host?: string, port?: number, token?: string }, cb) {
+    constructor({ host, port, token }: { host?: string, port?: number, token?: string }, cb: (client: Net.Socket) => void) {
 
         this.config = {
             host: host ?? '127.0.0.1',
