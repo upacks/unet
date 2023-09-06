@@ -1,10 +1,55 @@
 /** TCP-Samples **/
 
-import { Shell, Delay, Loop, log } from 'utils'
+import { Shell, Safe, Delay, Loop, log } from 'utils'
 
 import { NetClient, NetServer } from './tcp'
 import { Host } from './host'
 import { Proxy, Core } from './proxy'
+
+const REPRODUCE_LOOP_ISSUE = () => {
+
+    log.info(`BN_RTCM server is running on ${process.pid} 🚀🚀🚀`)
+
+    const API = new Host({ name: 'bn' })
+
+    const _ = {
+        from: { host: "10.10.1.65", port: 8080 },
+        to: { host: "143.198.198.77", port: 2202 },
+        source: {
+            lastMessage: 0,
+            reconnect: 0,
+        },
+        dest: {
+            lastMessage: 0,
+            reconnect: 0,
+        }
+    }
+
+    API.on('me', () => _)
+
+    const source = new NetClient(_.from, (client) => {
+
+        ++_.source.reconnect
+
+        client.on('data', (chunk: any) => Safe(() => {
+            source.last = _.source.lastMessage = Date.now()
+            dest.client.write(chunk)
+        }))
+
+    })
+
+    const dest = new NetClient(_.to, (client) => {
+
+        ++_.dest.reconnect
+
+        client.on('data', (chunk: any) => {
+            dest.last = _.dest.lastMessage = Date.now()
+        })
+
+    })
+
+    Loop(() => { dest.last = Date.now() }, 1000)
+}
 
 const HOST_SAMPLE = () => {
 

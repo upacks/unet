@@ -111,8 +111,9 @@ export class NetClient {
 
     client
     config
-    callback: (client: ClientSocket) => void
     last = Date.now()
+    isRestarting = false
+    callback: (client: ClientSocket) => void
 
     constructor({ host, port, token }: { host?: string, port?: number, token?: string }, cb: (client: ClientSocket) => void) {
 
@@ -135,32 +136,36 @@ export class NetClient {
 
     }
 
-    log = (s) => log.info(`TCP.Connection ${this.config.host}: ${s}`)
-
     restart = () => {
 
+        if (this.isRestarting) { return 0 }
+        this.isRestarting = true
+
         try {
-            this.log(`Removing current connections and listeners ...`)
+            log.warn(`NetClient: Removing current connections and listeners ...`)
             this.client.removeAllListeners()
             this.client.destroy()
         } catch (err) {
-            this.log(`While Removing current connections: ${err.message}`)
+            log.error(`NetClient: While Removing current connections: ${err.message}`)
         } finally {
-            Delay(() => this.start(), 15 * 1000)
+            Delay(() => {
+                this.isRestarting = false
+                this.start()
+            }, 15 * 1000)
         }
 
     }
 
     start = () => {
 
-        this.log(`Starting a new NET.SOCKET ...`)
+        log.success(`NetClient: Starting a new NET.SOCKET ...`)
 
         this.client = new Net.Socket()
 
         this.client.authenticate = (token) => this.client.write(token)
 
         this.client.connect(this.config, () => {
-            this.log(`Connection established with the server`)
+            log.success(`NetClient: Connection established with the server`)
             this.callback(this.client)
         })
 
@@ -173,17 +178,17 @@ export class NetClient {
         }) */
 
         this.client.on('error', (err: any) => {
-            this.log(`On.Error / ${err.message}`)
+            log.error(`NetClient: On.Error / ${err.message}`)
             this.restart()
         })
 
         this.client.on('close', () => {
-            this.log(`On.Close triggered!`)
+            log.warn(`NetClient: On.Close triggered!`)
             this.restart()
         })
 
         this.client.on('end', () => {
-            this.log(`On.End triggered!`)
+            log.warn(`NetClient: On.End triggered!`)
             this.restart()
         })
 
