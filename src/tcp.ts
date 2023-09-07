@@ -28,7 +28,7 @@ export class NetServer {
         this.host = host ?? '127.0.0.1'
         this.port = port ?? 0
         this.secret = secret ?? env.secret ?? 'secret'
-        this.alias = `TCP-Host ${this.host} ${this.port}`
+        this.alias = `TCP_Server<${this.host}:${this.port}>`
         this.create(cb)
 
     }
@@ -48,18 +48,18 @@ export class NetServer {
             this.server = Net.createServer()
             this.server.listen(this.port, this.host, () => {
 
-                log.success(`${this.alias}: Started!`)
+                log.success(`${this.alias} Started!`)
 
                 this.server.on('connection', (client: Net.Socket | any) => {
 
-                    const alias = `${client.remoteAddress}:${client.remotePort}`
-                    log.success(`${this.alias}: ${alias} / Connected!`)
+                    const alias = `<${client.remoteAddress}:${client.remotePort}>`
 
                     client.id = Uid()
                     client.isAuthenticated = false
                     client.decoded = null
-
                     this.clients.push(client)
+
+                    log.success(`${this.alias} <- ${alias} [${client.id}] Connected!`)
 
                     client.authenticate = (token) => {
 
@@ -69,10 +69,10 @@ export class NetServer {
                             if (decoded) {
                                 client.isAuthenticated = true
                                 client.decoded = decoded
-                                log.success(`${this.alias}: Authorized!`)
+                                log.success(`${this.alias} <- ${alias} [${client.id}] Authorized!`)
                                 return decoded
                             } else {
-                                log.warn(`${this.alias}: Authorization failed / ${token}`)
+                                log.warn(`${this.alias} <- ${alias} [${client.id}] Authorization failed`)
                                 client.write('Unauthorization failed!\r\n')
                                 Delay(() => client.destroy(), 2500)
                                 return null
@@ -86,7 +86,7 @@ export class NetServer {
 
                         let index = this.clients.findIndex((o) => o.remoteAddress === client.remoteAddress && o.remotePort === client.remotePort)
                         index !== -1 && this.clients.splice(index, 1)
-                        log.warn(`${this.alias}: ${alias} / [idx_${index}] Disconnected!`)
+                        log.warn(`${this.alias} <- ${alias} [${index}] Disconnected!`)
 
                     })
 
@@ -98,7 +98,7 @@ export class NetServer {
 
         } catch (err) {
 
-            log.error(`${this.alias}: While starting ${err.message}`)
+            log.error(`${this.alias} While starting ${err.message}`)
             this.port !== 0 && Delay(() => this.create(cb), 15 * 1000)
 
         }
@@ -113,7 +113,10 @@ export class NetClient {
     config
     last = Date.now()
     isRestarting = false
+    alias = 'TCP_Client<0:0>'
+
     callback: (client: ClientSocket) => void
+    onRestart = () => { }
 
     constructor({ host, port, token }: { host?: string, port?: number, token?: string }, cb: (client: ClientSocket) => void) {
 
@@ -122,6 +125,7 @@ export class NetClient {
             port: port ?? 0,
             token: token ?? '#',
         }
+        this.alias = `TCP_Client<${this.config.host}:${this.config.port}>`
         this.callback = cb
         this.start()
 
@@ -142,11 +146,12 @@ export class NetClient {
         this.isRestarting = true
 
         try {
-            log.warn(`NetClient: Removing current connections and listeners ...`)
+            log.warn(`${this.alias} Removing current connections and listeners ...`)
             this.client.removeAllListeners()
             this.client.destroy()
+            this.onRestart()
         } catch (err) {
-            log.error(`NetClient: While Removing current connections: ${err.message}`)
+            log.error(`${this.alias} While Removing current connections: ${err.message}`)
         } finally {
             Delay(() => {
                 this.isRestarting = false
@@ -158,14 +163,14 @@ export class NetClient {
 
     start = () => {
 
-        log.success(`NetClient: Starting a new NET.SOCKET ...`)
+        log.req(`${this.alias} Starting a new NET.SOCKET ...`)
 
         this.client = new Net.Socket()
 
         this.client.authenticate = (token) => this.client.write(token)
 
         this.client.connect(this.config, () => {
-            log.success(`NetClient: Connection established with the server`)
+            log.success(`${this.alias} Connection established with the server`)
             this.callback(this.client)
         })
 
@@ -178,17 +183,17 @@ export class NetClient {
         }) */
 
         this.client.on('error', (err: any) => {
-            log.error(`NetClient: On.Error / ${err.message}`)
+            log.error(`${this.alias} On.Error / ${err.message}`)
             this.restart()
         })
 
         this.client.on('close', () => {
-            log.warn(`NetClient: On.Close triggered!`)
+            log.warn(`${this.alias} On.Close triggered!`)
             this.restart()
         })
 
         this.client.on('end', () => {
-            log.warn(`NetClient: On.End triggered!`)
+            log.warn(`${this.alias} On.End triggered!`)
             this.restart()
         })
 

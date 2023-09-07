@@ -38,6 +38,10 @@ const REPRODUCE_LOOP_ISSUE = () => {
 
     })
 
+    source.onRestart = () => {
+        log.warn(`ABOUT TO RESTART ${source.alias} -------------------------------------->>>`)
+    }
+
     const dest = new NetClient(_.to, (client) => {
 
         ++_.dest.reconnect
