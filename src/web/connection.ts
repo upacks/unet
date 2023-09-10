@@ -1,10 +1,11 @@
 import http from 'http'
 import https from 'https'
 import axios from "axios"
-import { Delay, log, env } from 'utils'
+import { Delay, log } from 'utils/web'
 
 const { io } = require("socket.io-client")
 
+const env: any = {}
 const whoami = env.whoami ?? "Master"
 const proxy = env.proxy ?? "http://127.0.0.1:8443"
 const token = env.token ?? "-"

@@ -1,6 +1,6 @@
 {
   "name": "unet",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "repository": "git@github.com:upacks/unet.git",
   "author": "gantulga.khuyag@gmail.com",
   "license": "MIT",
@@ -13,6 +13,12 @@
       "import": "./dist/index.js",
       "require": "./dist/index.js",
       "ts-import": "./src/index.ts"
+    },
+    "./web": {
+      "types": "./dist/web/index.d.ts",
+      "import": "./dist/web/index.js",
+      "require": "./dist/web/index.js",
+      "ts-import": "./src/web/index.ts"
     }
   },
   "scripts": {
