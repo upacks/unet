@@ -1,5 +1,5 @@
-import http from 'http'
-import https from 'https'
+// import http from 'http'
+// import https from 'https'
 import axios from "axios"
 import { Delay, log } from 'utils/web'
 
@@ -67,8 +67,8 @@ export class Connection {
                 'Authorization': `Bearer ${this.token}`,
                 'whoami': whoami,
             },
-            httpAgent: new http.Agent({ keepAlive: true }),
-            httpsAgent: new https.Agent({ keepAlive: true }),
+            // httpAgent: new http.Agent({ keepAlive: true }),
+            // httpsAgent: new https.Agent({ keepAlive: true }),
         })
 
     }
