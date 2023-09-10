@@ -1,13 +1,11 @@
-// import http from 'http'
-// import https from 'https'
 import axios from "axios"
 import { Delay, log } from 'utils/web'
 
 const { io } = require("socket.io-client")
 
 const env: any = {}
-const whoami = env.whoami ?? "Master"
-const proxy = env.proxy ?? "http://127.0.0.1:8443"
+const whoami = env.whoami ?? "Browser"
+const proxy = env.proxy ?? window.location.origin
 const token = env.token ?? "-"
 
 // ==================== CLASS: CONNECTION ==================== //

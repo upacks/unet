@@ -1,21 +1,9 @@
+import http from 'http'
+import https from 'https'
 import axios from "axios"
+import { Delay, log, env } from 'utils'
+
 const { io } = require("socket.io-client")
-
-const isWeb = typeof window !== 'undefined'
-let http = null
-let https = null
-let Delay, log, env
-
-if (isWeb) {
-
-    http = require('http')
-    https = require('https')
-}
-
-const utils = isWeb ? require('utils/web') : require('utils')
-Delay = utils.Delay
-log = utils.log
-env = utils.env ?? {}
 
 const whoami = env.whoami ?? "Master"
 const proxy = env.proxy ?? "http://127.0.0.1:8443"
@@ -78,8 +66,8 @@ export class Connection {
                 'Authorization': `Bearer ${this.token}`,
                 'whoami': whoami,
             },
-            httpAgent: http ? new http.Agent({ keepAlive: true }) : {},
-            httpsAgent: https ? new https.Agent({ keepAlive: true }) : {},
+            httpAgent: new http.Agent({ keepAlive: true }),
+            httpsAgent: new https.Agent({ keepAlive: true }),
         })
 
     }
