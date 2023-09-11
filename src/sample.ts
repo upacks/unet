@@ -8,7 +8,7 @@ import { Proxy, Core } from './proxy'
 
 const REPRODUCE_LOOP_ISSUE = () => {
 
-    log.info(`BN_RTCM server is running on ${process.pid} 🚀🚀🚀`)
+    log.info(`BN_RTCM server is running on ${process.pid} 🚀🚀🚀 \n`)
 
     const API = new Host({ name: 'bn' })
 
@@ -38,8 +38,10 @@ const REPRODUCE_LOOP_ISSUE = () => {
 
     })
 
-    source.onRestart = () => {
-        log.warn(`ABOUT TO RESTART ${source.alias} -------------------------------------->>>`)
+    source.onRestart = () => { }
+
+    source.onInfo = (t, { type, message }) => {
+        log[type](`[${t}] -> ${message}`)
     }
 
     const dest = new NetClient(_.to, (client) => {
@@ -52,8 +54,14 @@ const REPRODUCE_LOOP_ISSUE = () => {
 
     })
 
+    dest.onInfo = (t, { type, message }) => {
+        log[type](`[${t}] -> ${message}`)
+    }
+
     Loop(() => { dest.last = Date.now() }, 1000)
 }
+
+REPRODUCE_LOOP_ISSUE()
 
 const HOST_SAMPLE = () => {
 

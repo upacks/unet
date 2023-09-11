@@ -2,6 +2,8 @@ import Net from 'net'
 import jwt from 'jsonwebtoken'
 import { Delay, Loop, Uid, log, env } from 'utils'
 
+type iMessage = 'success' | 'info' | 'error' | 'warning' | 'loading'
+
 interface iHostCb {
     (data: Net.Socket | any): void
 }
@@ -22,6 +24,7 @@ export class NetServer {
     server: Net.Server
     clients: Net.Socket[] = []
     secret: string
+    onInfo = (type: iMessage, _log: { type: string, message: string }) => log[_log.type](_log.message)
 
     constructor({ host, port, secret }: { host?: string, port?: number, secret?: string }, cb: (client: ServerSocket) => void) {
 
@@ -48,7 +51,7 @@ export class NetServer {
             this.server = Net.createServer()
             this.server.listen(this.port, this.host, () => {
 
-                log.success(`${this.alias} Started!`)
+                this.onInfo('success', { type: 'success', message: `${this.alias} Started!` })
 
                 this.server.on('connection', (client: Net.Socket | any) => {
 
@@ -59,7 +62,7 @@ export class NetServer {
                     client.decoded = null
                     this.clients.push(client)
 
-                    log.success(`${this.alias} <- ${alias} [${client.id}] Connected!`)
+                    this.onInfo('success', { type: 'success', message: `${this.alias} <- ${alias} [${client.id}] Connected!` })
 
                     client.authenticate = (token) => {
 
@@ -69,10 +72,10 @@ export class NetServer {
                             if (decoded) {
                                 client.isAuthenticated = true
                                 client.decoded = decoded
-                                log.success(`${this.alias} <- ${alias} [${client.id}] Authorized!`)
+                                this.onInfo('success', { type: 'success', message: `${this.alias} <- ${alias} [${client.id}] Authorized!` })
                                 return decoded
                             } else {
-                                log.warn(`${this.alias} <- ${alias} [${client.id}] Authorization failed`)
+                                this.onInfo('warning', { type: 'warn', message: `${this.alias} <- ${alias} [${client.id}] Authorization failed` })
                                 client.write('Unauthorization failed!\r\n')
                                 Delay(() => client.destroy(), 2500)
                                 return null
@@ -86,7 +89,7 @@ export class NetServer {
 
                         let index = this.clients.findIndex((o) => o.remoteAddress === client.remoteAddress && o.remotePort === client.remotePort)
                         index !== -1 && this.clients.splice(index, 1)
-                        log.warn(`${this.alias} <- ${alias} [${index}] Disconnected!`)
+                        this.onInfo('warning', { type: 'warn', message: `${this.alias} <- ${alias} [${index}] Disconnected!` })
 
                     })
 
@@ -98,7 +101,7 @@ export class NetServer {
 
         } catch (err) {
 
-            log.error(`${this.alias} While starting ${err.message}`)
+            this.onInfo('error', { type: 'error', message: `${this.alias} While starting ${err.message}` })
             this.port !== 0 && Delay(() => this.create(cb), 15 * 1000)
 
         }
@@ -117,6 +120,7 @@ export class NetClient {
 
     callback: (client: ClientSocket) => void
     onRestart = () => { }
+    onInfo = (type: iMessage, _log: { type: string, message: string }) => log[_log.type](_log.message)
 
     constructor({ host, port, token }: { host?: string, port?: number, token?: string }, cb: (client: ClientSocket) => void) {
 
@@ -146,13 +150,14 @@ export class NetClient {
         this.isRestarting = true
 
         try {
-            log.warn(`${this.alias} Removing current connections and listeners ...`)
+            this.onInfo('loading', { type: 'warn', message: `${this.alias} Removing current connections and listeners ...` })
             this.client.removeAllListeners()
             this.client.destroy()
             this.onRestart()
         } catch (err) {
-            log.error(`${this.alias} While Removing current connections: ${err.message}`)
+            this.onInfo('error', { type: 'error', message: `${this.alias} While Removing current connections: ${err.message}` })
         } finally {
+            this.onInfo('loading', { type: 'warn', message: `${this.alias} Autimatically restart in 15 seconds ...` })
             Delay(() => {
                 this.isRestarting = false
                 this.start()
@@ -163,37 +168,29 @@ export class NetClient {
 
     start = () => {
 
-        log.req(`${this.alias} Starting a new NET.SOCKET ...`)
+        this.onInfo('info', { type: 'req', message: `${this.alias} Starting a new NET.SOCKET ...` })
 
         this.client = new Net.Socket()
 
         this.client.authenticate = (token) => this.client.write(token)
 
         this.client.connect(this.config, () => {
-            log.success(`${this.alias} Connection established with the server`)
+            this.onInfo('success', { type: 'success', message: `${this.alias} Connection established with the server` })
             this.callback(this.client)
         })
 
-        /* this.client.on('data', (chunk: any) => {
-            try {
-                this.last = Date.now()
-                this.log(`Data received from the server [${chunk.toString().length}]`)
-                this.callback(chunk)
-            } catch (err) { }
-        }) */
-
         this.client.on('error', (err: any) => {
-            log.error(`${this.alias} On.Error / ${err.message}`)
+            this.onInfo('error', { type: 'error', message: `${this.alias} On.Error / ${err.message}` })
             this.restart()
         })
 
         this.client.on('close', () => {
-            log.warn(`${this.alias} On.Close triggered!`)
+            this.onInfo('warning', { type: 'warn', message: `${this.alias} On.Close triggered!` })
             this.restart()
         })
 
         this.client.on('end', () => {
-            log.warn(`${this.alias} On.End triggered!`)
+            this.onInfo('warning', { type: 'warn', message: `${this.alias} On.End triggered!` })
             this.restart()
         })
 
