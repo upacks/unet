@@ -149,20 +149,25 @@ export class NetClient {
         if (this.isRestarting) { return 0 }
         this.isRestarting = true
 
-        try {
-            this.onInfo('loading', { type: 'warn', message: `${this.alias} Removing current connections and listeners ...` })
-            this.client.removeAllListeners()
-            this.client.destroy()
-            this.onRestart()
-        } catch (err) {
-            this.onInfo('error', { type: 'error', message: `${this.alias} While Removing current connections: ${err.message}` })
-        } finally {
-            this.onInfo('loading', { type: 'warn', message: `${this.alias} Autimatically restart in 15 seconds ...` })
-            Delay(() => {
-                this.isRestarting = false
-                this.start()
-            }, 15 * 1000)
-        }
+        this.onInfo('loading', { type: 'warn', message: `${this.alias} Removing current connections and listeners ...` })
+
+        Delay(() => {
+
+            try {
+                this.client.removeAllListeners()
+                this.client.destroy()
+                this.onRestart()
+            } catch (err) {
+                this.onInfo('error', { type: 'error', message: `${this.alias} While Removing current connections: ${err.message}` })
+            } finally {
+                this.onInfo('loading', { type: 'warn', message: `${this.alias} Autimatically restart in 15 seconds ...` })
+                Delay(() => {
+                    this.isRestarting = false
+                    this.start()
+                }, 15 * 1000)
+            }
+
+        }, 1000)
 
     }
 
