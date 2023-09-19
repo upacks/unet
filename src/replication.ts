@@ -17,8 +17,8 @@ export class ReplicaMaster {
         name: string /** Table name */,
         table: any /** Sequel Table */,
         channel: Host /** Host endpoint */,
-        debug: boolean,
-        limit: number /** Rows in a request */,
+        debug?: boolean,
+        limit?: number /** Rows in a request */,
         onPull?: () => {} | any /** Customize: Pull method */,
         onTrigger?: () => {} /** Customize: That listens Sequel events and triggers replication */,
         onSave?: () => {} | any /** Customize: Save method */,
@@ -29,7 +29,7 @@ export class ReplicaMaster {
 
         this.name = me
         this.table = table
-        this.limit = limit
+        this.limit = limit ?? 10
         const g = debug === true
 
         const _onPull = typeof onPull !== 'undefined' ? onPull : this.onPull
@@ -135,9 +135,9 @@ export class ReplicaSlave {
         name: string /** Table name */,
         table: any /** Sequel Table */,
         channel: Connection/** Host endpoint */,
-        debug: boolean,
         retain: [number | any, string | any] /** [5,'days'] -> Last 5 days of data will be replicated */,
-        limit: number /** Rows in a request */,
+        debug?: boolean,
+        limit?: number /** Rows in a request */,
         onPull?: () => {} /** Customize: Pull method */,
         onPush?: () => {} /** Customize: Push method */,
         onTrigger?: () => {} /** Customize: That listens Sequel events and triggers replication */,
@@ -149,7 +149,7 @@ export class ReplicaSlave {
 
         this.table = table
         this.name = me
-        this.limit = limit
+        this.limit = limit ?? 10
         const g = debug === true
 
         const _onPull = typeof onPull !== 'undefined' ? onPull : this.onPull
