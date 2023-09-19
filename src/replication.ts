@@ -126,10 +126,10 @@ export class ReplicaSlave {
     table
     name
     limit = 10
-    delay = 750
+    delay = 1000
     onChangeCall: any = (...n) => true
 
-    constructor({ me, name, table, channel, debug, retain, limit, onPull, onPush, onTrigger, onSave, onChange }: {
+    constructor({ me, name, table, channel, debug, retain, limit, delay, onPull, onPush, onTrigger, onSave, onChange }: {
         me: string /** Device name */,
         name: string /** Table name */,
         table: any /** Sequel Table */,
@@ -150,7 +150,7 @@ export class ReplicaSlave {
         this.table = table
         this.name = me
         this.limit = limit ?? 10
-        this.delay = this.delay ?? 750
+        this.delay = delay ?? 1000
         const g = debug === true
 
         const _onPull = typeof onPull !== 'undefined' ? onPull : this.onPull
