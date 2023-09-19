@@ -1,4 +1,4 @@
-import { PackageExists, Loop, log, moment, dateFormat, Delay, Now } from 'utils'
+import { PackageExists, Loop, log, moment, dateFormat, Delay, Now, Sfy, Jfy } from 'utils'
 import { Host } from './host'
 import { Connection } from './connection'
 
@@ -44,14 +44,14 @@ export class ReplicaMaster {
 
             try {
 
-                g && log.info(`[M.Pull] -> Start / ${JSON.stringify(query.checkpoint)}`)
+                g && log.info(`[M.Pull] -> Start / ${Sfy(query.checkpoint).slice(0, 128)} [...]`)
                 const { items, checkpoint } = await _onPull(query.checkpoint)
-                g && log.info(`[M.Pull] -> End / ${JSON.stringify(checkpoint)}`)
+                g && log.info(`[M.Pull] -> End / ${Sfy(checkpoint).slice(0, 128)} [...]`)
                 return { items: items ?? [], checkpoint: checkpoint ?? {} }
 
             } catch (error) {
 
-                g && log.info(`[M.Pull] -> Fail / ${error.message}`)
+                log.warn(`[M.Pull] -> Fail / ${error.message}`)
                 return { items: [], checkpoint: {} }
 
             }
@@ -61,11 +61,15 @@ export class ReplicaMaster {
         channel.on(`${name}-pushing`, async ({ body }) => {
 
             try {
-                g && log.info(`[M.Push] -> Start / ${JSON.stringify(body)}`)
+
+                g && log.info(`[M.Push] -> Start / ${Sfy(body).slice(0, 128)} [...]`)
                 return await _onSave(body.items)
+
             } catch (error) {
-                g && log.info(`[M.Push] -> Fail / ${JSON.stringify(error.message)}`)
+
+                log.warn(`[M.Push] -> Fail / ${Sfy(error.message)} [...]`)
                 return 'fail'
+
             }
 
         })
@@ -174,7 +178,7 @@ export class ReplicaSlave {
 
             _onPull((latest: any = {}) => {
 
-                g && log.info(`[S.Pull] -> Start[1] / ${JSON.stringify(latest)}`)
+                g && log.info(`[S.Pull] -> Start[1] / ${Sfy(latest).slice(0, 128)} [...]`)
 
                 try {
 
@@ -190,7 +194,7 @@ export class ReplicaSlave {
 
                         if (err) {
 
-                            g && log.warn(`[S.Pull] -> Fail[1] / ${err.message ?? 'unknown'}`)
+                            log.warn(`[S.Pull] -> Fail[1] / ${err.message ?? 'unknown'}`)
                             this.isBusy = false
                             shake()
 
@@ -199,7 +203,7 @@ export class ReplicaSlave {
                             const checkpoint = response?.checkpoint ?? {}
                             const items = response?.items ?? []
 
-                            g && log.success(`[S.Pull] -> Success / ${JSON.stringify(checkpoint)} / Items: ${items.length}`)
+                            g && log.success(`[S.Pull] -> Success / ${Sfy(checkpoint).slice(0, 128)} [...] / Items: ${items.length}`)
 
                             _onSave(items)
 
@@ -210,7 +214,7 @@ export class ReplicaSlave {
                                 updatedAt: checkpoint.updatedAt ?? moment().add(-(retain[0]), retain[1]).format(dateFormat),
                             }
 
-                            g && log.info(`[S.Push] -> Start / ${JSON.stringify(_checkpoint)}`)
+                            g && log.info(`[S.Push] -> Start / ${Sfy(_checkpoint).slice(0, 128)} [...]`)
 
                             _onPush(_checkpoint, (rows) => {
 
@@ -221,9 +225,9 @@ export class ReplicaSlave {
                                     channel.push(`${name}-pushing`, { items: rows }, (err, data) => {
 
                                         if (err) {
-                                            g && log.warn(`[S.Push] -> Fail / ${err.message ?? 'unknown'}`)
+                                            log.warn(`[S.Push] -> Fail / ${err.message ?? 'unknown'}`)
                                         } else {
-                                            g && log.success(`[S.Push] -> Success / ${JSON.stringify(data)}`)
+                                            g && log.success(`[S.Push] -> Success / ${Sfy(data).slice(0, 128)} [...]`)
                                             this.success = Date.now()
                                         }
 
@@ -253,7 +257,7 @@ export class ReplicaSlave {
 
                 } catch (err) {
 
-                    g && log.warn(`[S.Pull] -> Fail[0] / ${err.message ?? 'unknown'}`)
+                    log.warn(`[S.Pull] -> Fail[0] / ${err.message ?? 'unknown'}`)
                     this.isBusy = false
                     shake()
 
