@@ -1,4 +1,6 @@
 import { PackageExists, Loop, log, moment, dateFormat } from 'utils'
+import { Host } from './host'
+import { Connection } from './connection'
 
 const name: string = 'sequelize'
 const { Op }: any = PackageExists(name) ? require(name) : { Op: {} }
@@ -8,9 +10,20 @@ export class ReplicaMaster {
     name
     table
     limit
-    onChangeCall = (...n) => true
+    onChangeCall: any = (...n) => true
 
-    constructor({ me, name, table, debug, channel, limit, onPull, onSave, onTrigger, onChange }) {
+    constructor({ me, name, table, channel, debug, limit, onPull, onTrigger, onSave, onChange }: {
+        me: string /** Device name */,
+        name: string /** Table name */,
+        table: any /** Sequel Table */,
+        channel: Host /** Host endpoint */,
+        debug: boolean,
+        limit: number /** Rows in a request */,
+        onPull?: () => {} | any /** Customize: Pull method */,
+        onTrigger?: () => {} /** Customize: That listens Sequel events and triggers replication */,
+        onSave?: () => {} | any /** Customize: Save method */,
+        onChange?: () => {} /** Customize: Change method */,
+    }) {
 
         Op.or ? null : log.warn('Master Replication requires Sequelize')
 
@@ -61,16 +74,25 @@ export class ReplicaMaster {
 
     onPull = async ({ id, dst, updatedAt }) => {
 
-        const items = await this.table.findAll({
-            limit: this.limit,
-            where: { dst: { [Op.or]: [dst, 'all'] }, [Op.or]: [{ updatedAt: { [Op.gt]: updatedAt } }, { id: { [Op.gt]: id }, updatedAt: { [Op.eq]: updatedAt } }] },
-            order: [['updatedAt', 'ASC']],
-            raw: true,
-        })
+        try {
 
-        const latest = await this.table.findOne({ where: { src: dst }, order: [['updatedAt', 'DESC']], raw: true })
+            const items = await this.table.findAll({
+                limit: this.limit,
+                where: { dst: { [Op.or]: [dst, 'all'] }, [Op.or]: [{ updatedAt: { [Op.gt]: updatedAt } }, { id: { [Op.gt]: id }, updatedAt: { [Op.eq]: updatedAt } }] },
+                order: [['updatedAt', 'ASC']],
+                raw: true,
+            })
 
-        return { items: items ?? [], checkpoint: latest ?? {} }
+            const latest = await this.table.findOne({ where: { src: dst }, order: [['updatedAt', 'DESC']], raw: true })
+
+            return { items: items ?? [], checkpoint: latest ?? {} }
+
+        } catch (error: any) {
+
+            log.warn(`M.Pulling Fail -> ${error.message}`)
+            return { items: [], checkpoint: {} }
+
+        }
 
     }
     onTrigger = (next) => {
@@ -106,9 +128,22 @@ export class ReplicaSlave {
     name
     limit = 10
     delay = 750
-    onChangeCall = (...n) => true
+    onChangeCall: any = (...n) => true
 
-    constructor({ me, name, table, channel, debug, retain, limit, onPull, onPush, onTrigger, onSave, onChange }) {
+    constructor({ me, name, table, channel, debug, retain, limit, onPull, onPush, onTrigger, onSave, onChange }: {
+        me: string /** Device name */,
+        name: string /** Table name */,
+        table: any /** Sequel Table */,
+        channel: Connection/** Host endpoint */,
+        debug: boolean,
+        retain: [number | any, string | any] /** [5,'days'] -> Last 5 days of data will be replicated */,
+        limit: number /** Rows in a request */,
+        onPull?: () => {} /** Customize: Pull method */,
+        onPush?: () => {} /** Customize: Push method */,
+        onTrigger?: () => {} /** Customize: That listens Sequel events and triggers replication */,
+        onSave?: () => {} /** Customize: Save method */,
+        onChange?: () => {} /** Customize: Change method */,
+    }) {
 
         Op.or ? null : log.warn('Slave Replication requires Sequelize')
 
@@ -146,7 +181,7 @@ export class ReplicaSlave {
                     updatedAt: latest.updatedAt ?? moment().add(-(retain[0]), retain[1]).format(dateFormat),
                 }
 
-                channel.pull(`${name}-pulling`, { checkpoint: _checkpoint }, (err, { items, checkpoint }) => {
+                channel.pull(`${name}-pulling`, { checkpoint: _checkpoint }, (err, response) => {
 
                     if (err) {
 
@@ -156,11 +191,13 @@ export class ReplicaSlave {
 
                     } else {
 
+                        const checkpoint = response?.checkpoint ?? {}
+                        const items = response?.items ?? []
+
                         g && log.info(`S.Pull Success -> ${JSON.stringify(checkpoint)} / Items: ${items.length}`)
 
                         _onSave(items)
 
-                        checkpoint = checkpoint ?? {}
                         const _checkpoint = {
                             id: checkpoint.id ?? '',
                             src: me,
