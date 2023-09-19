@@ -83,11 +83,11 @@ export class ReplicaMaster {
             const items = await this.table.findAll({
                 limit: this.limit,
                 where: { dst: { [Op.or]: [dst, 'all'] }, [Op.or]: [{ updatedAt: { [Op.gt]: updatedAt } }, { id: { [Op.gt]: id }, updatedAt: { [Op.eq]: updatedAt } }] },
-                order: [['updatedAt', 'ASC']],
+                order: [['updatedAt', 'ASC'], ['id', 'ASC']],
                 raw: true,
             })
 
-            const latest = await this.table.findOne({ where: { src: dst }, order: [['updatedAt', 'DESC']], raw: true })
+            const latest = await this.table.findOne({ where: { src: dst }, order: [['updatedAt', 'DESC'], ['id', 'DESC']], raw: true })
 
             return { items: items ?? [], checkpoint: latest ?? {} }
 
@@ -286,7 +286,7 @@ export class ReplicaSlave {
 
     onPull = (next: any) => {
 
-        this.table.findOne({ where: { src: { [Op.not]: this.name } }, order: [['updatedAt', 'DESC']], raw: true }).then(checkpoint => {
+        this.table.findOne({ where: { src: { [Op.not]: this.name } }, order: [['updatedAt', 'DESC'], ['id', 'DESC']], raw: true }).then(checkpoint => {
             next(checkpoint)
         }).catch(err => {
             next(null)
@@ -299,7 +299,7 @@ export class ReplicaSlave {
         this.table.findAll({
             where: { src, dst, [Op.or]: [{ updatedAt: { [Op.gt]: updatedAt } }, { id: { [Op.gt]: id }, updatedAt: { [Op.eq]: updatedAt } }] },
             limit: this.limit,
-            order: [['updatedAt', 'ASC']],
+            order: [['updatedAt', 'ASC'], ['id', 'ASC']],
             raw: true,
         }).then(items => { next(items) }).catch(err => { next(null) })
 
