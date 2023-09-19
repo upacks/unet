@@ -89,11 +89,13 @@ export class Connection {
         } catch (err) { return null }
     }
 
-    rej = (error) => {
+    rej = (alias: string, error) => {
         try {
 
-            const info = error.response?.data ?? error.message
-            log.error(info)
+            // const info = error.response?.data ?? error.message
+            // const info = error.response.status + ' / ' + error.response.statusText
+            // log.error(`${alias}: ${info}`)
+
             return error
 
         } catch (err) { return error }
@@ -102,13 +104,13 @@ export class Connection {
     get = (channel, data) => new Promise((resolve, reject) => {
         this.caxios.get(channel, { params: data })
             .then(response => resolve(this.res(response)))
-            .catch(err => reject(this.rej(err)))
+            .catch(err => reject(this.rej(`While executing "request.set"`, err)))
     })
 
     set = (channel, data) => new Promise((resolve, reject) => {
         this.caxios.post(channel, data)
             .then(response => resolve(this.res(response)))
-            .catch(err => reject(this.rej(err)))
+            .catch(err => reject(this.rej(`While executing "request.set"`, err)))
     })
 
     pull = (channel, data, cb) => {

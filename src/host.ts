@@ -136,10 +136,13 @@ export class Host {
 
             if (log.success(`Created host: ${local}:${server.address().port}/${this.name}`) && this.redis) { /** @_RETRY_REQUIRED_ **/
 
-                const push = () => Pub.publish("expose", JSON.stringify({ name: this.name, http: `${local}:${server.address().port}`, ws: `${ws}:${server.address().port}` }))
-                const retry = Loop(() => push(), 2500)
+                const push = () => {
+                    log.info(`[Exposing] -> ${this.name} ...`)
+                    Pub.publish("expose", JSON.stringify({ name: this.name, http: `${local}:${server.address().port}`, ws: `${ws}:${server.address().port}` }))
+                }
+                const retry = Loop(() => { push() }, 2500)
                 Sub.subscribe('expose_reply', (err: any, e: string) => err ? log.error(err.message) : log.info(`Subscribed channels: ${e}`) && push())
-                Sub.on("message", (channel: string, message: string) => message === `${this.name}` && log.success(`${channel}: ${message}`) && clearInterval(retry))
+                Sub.on("message", (channel: string, message: string) => message === `${this.name}` && log.success(`[Exposing] -> ${channel} / ${message}`) && clearInterval(retry))
 
             }
 

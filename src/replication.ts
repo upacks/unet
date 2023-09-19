@@ -187,7 +187,7 @@ export class ReplicaSlave {
 
                         this.isBusy = false
                         shake()
-                        g && log.info(`S.Pull Fail  -> ${JSON.stringify(err.message)}`)
+                        g && log.info(`S.Pull Fail  -> ${err.message ?? 'unknown'}`)
 
                     } else {
 
@@ -216,7 +216,7 @@ export class ReplicaSlave {
                                 channel.push(`${name}-pushing`, { items: rows }, (err, data) => {
 
                                     if (err) {
-                                        g && log.info(`S.Push Fail -> ${JSON.stringify(err.message)}`)
+                                        g && log.info(`S.Push Fail -> ${err.message ?? 'unknown'}`)
                                     } else {
                                         g && log.info(`S.Push Success -> ${JSON.stringify(data)}`)
                                         this.success = Date.now()
@@ -249,10 +249,11 @@ export class ReplicaSlave {
                 })
 
             } catch (err) {
-                console.log(err)
-                g && log.info(`S.Pull Fail  -> ${err.message}`)
+
+                g && log.info(`S.Pull Fail  -> ${err.message ?? 'unknown'}`)
                 this.isBusy = false
                 shake()
+
             }
 
         })
