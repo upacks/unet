@@ -237,11 +237,9 @@ export class ReplicaSlave {
 
                                 } else {
 
-                                    if (items.length === limit || rows.length === limit) {
-
+                                    if (items.length === limit) { //  || (rows && rows.length > 0 && rows.length === limit) Removing it
                                         this.isBusy = false
                                         shake()
-
                                     } else {
                                         this.isBusy = false
                                     }
