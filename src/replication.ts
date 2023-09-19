@@ -1,4 +1,4 @@
-import { PackageExists, Loop, log, moment, dateFormat } from 'utils'
+import { PackageExists, Loop, log, moment, dateFormat, Delay, Now } from 'utils'
 import { Host } from './host'
 import { Connection } from './connection'
 
@@ -138,6 +138,7 @@ export class ReplicaSlave {
         retain: [number | any, string | any] /** [5,'days'] -> Last 5 days of data will be replicated */,
         debug?: boolean,
         limit?: number /** Rows in a request */,
+        delay?: number /** Delay between request **/,
         onPull?: () => {} /** Customize: Pull method */,
         onPush?: () => {} /** Customize: Push method */,
         onTrigger?: () => {} /** Customize: That listens Sequel events and triggers replication */,
@@ -150,6 +151,7 @@ export class ReplicaSlave {
         this.table = table
         this.name = me
         this.limit = limit ?? 10
+        this.delay = this.delay ?? 750
         const g = debug === true
 
         const _onPull = typeof onPull !== 'undefined' ? onPull : this.onPull
@@ -167,96 +169,104 @@ export class ReplicaSlave {
         channel.on("connect", () => shake())
         channel.on('disconnect', () => { })
 
-        const pull = () => _onPull((latest: any = {}) => {
+        const pull = () => {
 
-            g && log.info(`S.Pull Start -> ${JSON.stringify(latest)}`)
+            g && log.info(`S.Pull Pre.Start -> ${Now()}`)
 
-            try {
+            _onPull((latest: any = {}) => {
 
-                latest = latest ?? {}
-                const _checkpoint = {
-                    id: latest.id ?? '',
-                    src: 'master',
-                    dst: me,
-                    updatedAt: latest.updatedAt ?? moment().add(-(retain[0]), retain[1]).format(dateFormat),
-                }
+                g && log.info(`S.Pull Start -> ${JSON.stringify(latest)}`)
 
-                channel.pull(`${name}-pulling`, { checkpoint: _checkpoint }, (err, response) => {
+                try {
 
-                    if (err) {
+                    latest = latest ?? {}
+                    const _checkpoint = {
+                        id: latest.id ?? '',
+                        src: 'master',
+                        dst: me,
+                        updatedAt: latest.updatedAt ?? moment().add(-(retain[0]), retain[1]).format(dateFormat),
+                    }
 
-                        this.isBusy = false
-                        shake()
-                        g && log.info(`S.Pull Fail  -> ${err.message ?? 'unknown'}`)
+                    channel.pull(`${name}-pulling`, { checkpoint: _checkpoint }, (err, response) => {
 
-                    } else {
+                        if (err) {
 
-                        const checkpoint = response?.checkpoint ?? {}
-                        const items = response?.items ?? []
+                            this.isBusy = false
+                            shake()
+                            g && log.warn(`S.Pull Fail  -> ${err.message ?? 'unknown'}`)
 
-                        g && log.info(`S.Pull Success -> ${JSON.stringify(checkpoint)} / Items: ${items.length}`)
+                        } else {
 
-                        _onSave(items)
+                            const checkpoint = response?.checkpoint ?? {}
+                            const items = response?.items ?? []
 
-                        const _checkpoint = {
-                            id: checkpoint.id ?? '',
-                            src: me,
-                            dst: checkpoint.dst ?? 'master',
-                            updatedAt: checkpoint.updatedAt ?? moment().add(-(retain[0]), retain[1]).format(dateFormat),
-                        }
+                            g && log.success(`S.Pull Success -> ${JSON.stringify(checkpoint)} / Items: ${items.length}`)
 
-                        g && log.info(`S.Push Start -> ${JSON.stringify(_checkpoint)}`)
+                            _onSave(items)
 
-                        _onPush(_checkpoint, (rows) => {
-
-                            g && log.info(`S.Pushing -> Items: ${rows ? rows.length : '(-)'}`)
-
-                            if (rows && rows.length > 0) {
-
-                                channel.push(`${name}-pushing`, { items: rows }, (err, data) => {
-
-                                    if (err) {
-                                        g && log.info(`S.Push Fail -> ${err.message ?? 'unknown'}`)
-                                    } else {
-                                        g && log.info(`S.Push Success -> ${JSON.stringify(data)}`)
-                                        this.success = Date.now()
-                                    }
-
-                                    this.isBusy = false
-
-                                    if (items.length === limit || rows.length === limit) { shake() }
-
-                                    return { err, data }
-
-                                })
-
-                            } else {
-
-                                if (items.length === limit || rows.length === limit) {
-
-                                    this.isBusy = false
-                                    shake()
-
-                                } else {
-                                    this.isBusy = false
-                                }
-
+                            const _checkpoint = {
+                                id: checkpoint.id ?? '',
+                                src: me,
+                                dst: checkpoint.dst ?? 'master',
+                                updatedAt: checkpoint.updatedAt ?? moment().add(-(retain[0]), retain[1]).format(dateFormat),
                             }
 
-                        })
+                            g && log.info(`S.Push Start -> ${JSON.stringify(_checkpoint)}`)
 
-                    }
-                })
+                            _onPush(_checkpoint, (rows) => {
 
-            } catch (err) {
+                                g && log.info(`S.Pushing -> Items: ${rows ? rows.length : '(-)'}`)
 
-                g && log.info(`S.Pull Fail  -> ${err.message ?? 'unknown'}`)
-                this.isBusy = false
-                shake()
+                                if (rows && rows.length > 0) {
 
-            }
+                                    channel.push(`${name}-pushing`, { items: rows }, (err, data) => {
 
-        })
+                                        if (err) {
+                                            g && log.warn(`S.Push Fail -> ${err.message ?? 'unknown'}`)
+                                        } else {
+                                            g && log.success(`S.Push Success -> ${JSON.stringify(data)}`)
+                                            this.success = Date.now()
+                                        }
+
+                                        this.isBusy = false
+
+                                        if (items.length === limit || rows.length === limit) { shake() }
+
+                                        return { err, data }
+
+                                    })
+
+                                } else {
+
+                                    if (items.length === limit || rows.length === limit) {
+
+                                        this.isBusy = false
+                                        shake()
+
+                                    } else {
+                                        this.isBusy = false
+                                    }
+
+                                }
+
+                            })
+
+                        }
+                    })
+
+                } catch (err) {
+
+                    g && log.warn(`S.Pull Fail  -> ${err.message ?? 'unknown'}`)
+                    Delay(() => {
+                        this.isBusy = false
+                        shake()
+                    }, 2500)
+
+                }
+
+            })
+
+        }
 
         Loop(() => {
 
@@ -264,7 +274,7 @@ export class ReplicaSlave {
             if ((Date.now() - this.lastPull) > (10 * 1000)) { shake() }
 
             if (this.hopes.length > 0 && this.isBusy === false) {
-                g && log.info(` ✩ `)
+                g && log.warn(` ✩ `)
                 this.hopes = []
                 this.isBusy = true
                 this.lastPull = Date.now()
