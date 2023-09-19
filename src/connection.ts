@@ -11,13 +11,6 @@ const token = env.token ?? "-"
 
 // ==================== CLASS: CONNECTION ==================== //
 
-export interface iConnection {
-    name: string /** host name **/
-    proxy?: string /** proxy server **/
-    token?: string /** bearer **/
-    timeout?: number /** request timeout **/
-}
-
 export class Connection {
 
     private cio: any
@@ -27,7 +20,12 @@ export class Connection {
     public proxy: string
     public timeout: number
 
-    constructor(conf: iConnection) {
+    constructor(conf: {
+        name: string /** host name **/
+        proxy?: string /** proxy server **/
+        token?: string /** bearer **/
+        timeout?: number /** request timeout **/
+    }) {
 
         this.name = conf.name ?? '-'
         this.token = conf.token ?? token
@@ -54,8 +52,13 @@ export class Connection {
         })
 
         this.cio.on("connect_error", (error) => {
-            console.log(error)
-            log.error(`ws:${this.name}: ${error.message}`)
+
+            try {
+                log.error(`ws:${this.name}: ${error.type} / ${error.description.message}`)
+            } catch {
+                log.error(`ws:${this.name}: ${error.message}`)
+            }
+
         })
 
         this.caxios = axios.create({

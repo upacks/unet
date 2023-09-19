@@ -12,14 +12,6 @@ import { execute } from './util'
 
 // ==================== CLASS: HOST ==================== //
 
-export interface iHost {
-    name: string /** name alias **/
-    port?: number
-    static?: string /** if serves static **/
-    timeout?: number /** request timeout **/
-    redis?: boolean /** use redis **/
-}
-
 const ws = env.ws ?? "ws://127.0.0.1"
 const local = env.local ?? "http://127.0.0.1"
 
@@ -35,7 +27,13 @@ export class Host {
     public port: number
     public redis: boolean
 
-    constructor(conf: iHost) {
+    constructor(conf: {
+        name: string /** name alias **/
+        port?: number
+        static?: string /** if serves static **/
+        timeout?: number /** request timeout **/
+        redis?: boolean /** use redis **/
+    }) {
 
         this.name = conf.name
         this.timeout = conf.timeout ?? 5000
