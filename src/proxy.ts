@@ -1,5 +1,5 @@
-import express from 'express'
 import http from 'http'
+import express from 'express'
 import httpProxy from 'http-proxy'
 import { log } from 'utils'
 import { Redis } from './redis'
@@ -57,6 +57,8 @@ export class Core {
 
         // ==================== PROXY-SERVER ==================== //
 
+        log.info(`[ START ] -> Proxy-Server`)
+
         const app = express()
         const _app = http.createServer(app)
 
@@ -71,14 +73,32 @@ export class Core {
         const server = _app.listen(this.config.port)
         const apiProxy = httpProxy.createProxyServer()
 
-        const getPath = (url) => { try { return (this.store[url.split('/')[1]]).http } catch (error) { return `http://localhost:${this.config.port}/404` } }
-
-        log.info(`Proxy-Server [ STARTED ]`)
-
         // ==================== PROXY-HANDLERS ==================== //
 
-        app.all("*", (req, res) => apiProxy.web(req, res, { target: getPath(req.originalUrl) }))
-        server.on('upgrade', (req, socket, head) => apiProxy.ws(req, socket, head, { target: getPath(req.url) }))
+        log.info(`[ START ] -> Proxy-Handlers`)
+
+        const getPath = (url) => {
+
+            try { return (this.store[url.split('/')[1]]).http }
+            catch { return null }
+
+        }
+
+        /** Handling all the requests through Express **/
+        app.all("*", (req, res) => {
+
+            const target = getPath(req.originalUrl)
+            target ? apiProxy.web(req, res, { target }) : res.status(404).end(':(')
+
+        })
+
+        server.on('upgrade', (req, socket, head) => {
+
+            const target = getPath(req.url)
+            target ? apiProxy.ws(req, socket, head, { target }) : socket.end(':(')
+
+        })
+
         apiProxy.on('error', (err, req, res) => {
 
             log.error(`While Proxying: ${err.message}`)
@@ -90,11 +110,11 @@ export class Core {
         server.keepAliveTimeout = this.config.keepAliveTimeout
         server.headersTimeout = this.config.headersTimeout
 
-        log.info(`Proxy-Handlers [ STARTED ]`)
-
         // ==================== REDIS-CLIENT ==================== //
 
         if (typeof this.redis.Sub === 'object') {
+
+            log.info(`[ START ] -> Proxy-Redis`)
 
             this.redis.Sub.subscribe(this.config.redisChannel, (err, e: string) => err ?
                 log.error(err.message) :
@@ -108,8 +128,6 @@ export class Core {
                 this.redis.Pub.publish("expose_reply", name)
 
             })
-
-            log.info(`Proxy-Redis [ STARTED ]`)
 
         }
 
