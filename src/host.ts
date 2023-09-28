@@ -128,7 +128,7 @@ export class Host {
 
         }
 
-        this.app.use((err, req, res, next) => log.error(err.message) && res.status(500).send(err.message))
+        this.app.use((err, req, res, next) => err ? log.error(`uNet.Host: ${err.message}`) && res.status(500).send(`uNet.Host: ${err.message}`) : next())
 
         const server = this.server.listen(this.port, '0.0.0.0', () => {
 

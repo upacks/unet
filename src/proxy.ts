@@ -107,6 +107,8 @@ export class Core {
 
         })
 
+        app.use((err, req, res, next) => err ? log.error(`Proxy: ${err.message}`) && res.status(500).send(`Proxy: ${err.message}`) : next())
+
         server.keepAliveTimeout = this.config.keepAliveTimeout
         server.headersTimeout = this.config.headersTimeout
 
