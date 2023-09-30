@@ -65,8 +65,8 @@ export class Connection {
                 'Authorization': `Bearer ${this.token}`,
                 'whoami': whoami,
             },
-            // httpAgent: new http.Agent({ keepAlive: true }),
-            // httpsAgent: new https.Agent({ keepAlive: true }),
+            maxContentLength: Infinity,
+            maxBodyLength: Infinity,
         })
 
     }
