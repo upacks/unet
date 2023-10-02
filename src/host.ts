@@ -153,8 +153,8 @@ export class Host {
 
     }
 
-    emit = (channel: string, data: any, volatile = true) => {
-        volatile ? this.io.volatile.sockets.emit(channel, data) : this.io.sockets.emit(channel, data)
+    emit = (channel: string, data: any) => {
+        this.io.sockets.emit(channel, data)
     }
 
     on = (channel: string, callback: any) => {

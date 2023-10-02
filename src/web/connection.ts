@@ -120,7 +120,7 @@ export class Connection {
 
     /** _____________________________________________________________ WS-Client _____________________________________________________________ **/
 
-    emit = (channel, data, volatile = true) => {
+    emit = (channel, data, volatile = false) => {
         volatile ? this.cio.volatile.emit(channel, data) : this.cio.emit(channel, data)
     }
 
