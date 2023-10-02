@@ -17,10 +17,10 @@ const local = env.local ?? "http://127.0.0.1"
 
 export class Host {
 
-    private server
-    private requests: any = {}
+    public server
     public io
     public app
+    public requests: any = {}
 
     public name: string
     public timeout: number
@@ -153,8 +153,8 @@ export class Host {
 
     }
 
-    emit = (channel: string, data: any) => {
-        this.io.sockets.emit(channel, data)
+    emit = (channel: string, data: any, volatile = true) => {
+        volatile ? this.io.volatile.sockets.emit(channel, data) : this.io.sockets.emit(channel, data)
     }
 
     on = (channel: string, callback: any) => {

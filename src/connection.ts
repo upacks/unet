@@ -1,7 +1,7 @@
 import http from 'http'
 import https from 'https'
 import axios from "axios"
-import { Delay, log, env } from 'utils'
+import { Since, Delay, log, env } from 'utils'
 
 const { io } = require("socket.io-client")
 
@@ -13,18 +13,20 @@ const token = env.token ?? "-"
 
 export class Connection {
 
-    private cio: any
-    private caxios: any
+    public cio: any
+    public caxios: any
     public name: string
     public token: string
     public proxy: string
     public timeout: number
 
     constructor(conf: {
+
         name: string /** host name **/
         proxy?: string /** proxy server **/
         token?: string /** bearer **/
         timeout?: number /** request timeout **/
+
     }) {
 
         this.name = conf.name ?? '-'
@@ -82,79 +84,56 @@ export class Connection {
 
     /** _____________________________________________________________ HTTP-Client _____________________________________________________________ **/
 
-    res = (response) => {
-        try {
-
-            typeof response.data === 'string' && log.success(response.data)
-            return response.data
-
-        } catch (err) { return null }
-    }
-
-    rej = (alias: string, error) => {
-        try {
-
-            // const info = error.response?.data ?? error.message
-            // const info = error.response.status + ' / ' + error.response.statusText
-            // log.error(`${alias}: ${info}`)
-
-            return error
-
-        } catch (err) { return error }
-    }
-
     get = (channel, data) => new Promise((resolve, reject) => {
         this.caxios.get(channel, { params: data })
-            .then(response => resolve(this.res(response)))
-            .catch(err => reject(this.rej(`While executing "request.set"`, err)))
+            .then(({ data }) => resolve(data))
+            .catch(reject)
     })
 
     set = (channel, data) => new Promise((resolve, reject) => {
         this.caxios.post(channel, data)
-            .then(response => resolve(this.res(response)))
-            .catch(err => reject(this.rej(`While executing "request.set"`, err)))
+            .then(({ data }) => resolve(data))
+            .catch(reject)
     })
 
     pull = (channel, data, cb) => {
-        if (typeof cb === 'undefined') {
+        if (typeof cb === 'undefined')
             return this.get(channel, data)
-        } else {
+        else
             return this.get(channel, data)
                 .then(response => cb(null, response))
                 .catch(err => cb(err, null))
-        }
     }
 
     push = (channel, data, cb) => {
-        if (typeof cb === 'undefined') {
+        if (typeof cb === 'undefined')
             return this.set(channel, data)
-        } else {
+        else
             return this.set(channel, data)
                 .then(response => cb(null, response))
                 .catch(err => cb(err, null))
-        }
     }
+
+    /** _____________________________________________________________ HTTP/WS-Client _____________________________________________________________ **/
 
     poll = (channel, data, cb) => {
 
-        const update = () => Delay(() => this.pull(channel, data, cb), 25)
-        this.cio.on(channel, (go) => go && update())
-        Delay(() => update(), 25)
+        const since = new Since(1000)
+        const update = () => this.pull(channel, data, cb)
+        since.call(() => update())
+        this.cio.on(channel, (go) => go && since.add())
+        update()
 
     }
 
     /** _____________________________________________________________ WS-Client _____________________________________________________________ **/
 
-    emit = (channel, data, cb) => {
-        const call = typeof cb === 'undefined' ? (...n) => true : cb
-        this.get(channel, data)
-            .then(response => call(null, response))
-            .catch(err => call(err, null))
+    emit = (channel, data, volatile = true) => {
+        volatile ? this.cio.volatile.emit(channel, data) : this.cio.emit(channel, data)
     }
 
     on = (channel, cb) => {
         this.cio.on(channel, cb)
     }
-
 
 }
