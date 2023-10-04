@@ -118,9 +118,11 @@ export class Core {
 
             log.info(`[ START ] -> Proxy-Redis`)
 
-            this.redis.Sub.subscribe(this.config.redisChannel, (err, e: string) => err ?
-                log.error(err.message) :
-                log.info(`Subscribed channels: ${e}`))
+            this.redis.Sub.subscribe(this.config.redisChannel, (err, e: string) => {
+
+                err ? log.error(err.message) : log.info(`Subscribed channels: ${e}`)
+
+            })
 
             this.redis.Sub.on("message", (channel, message) => {
 

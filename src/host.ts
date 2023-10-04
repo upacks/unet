@@ -1,9 +1,8 @@
 import fs from 'fs'
-import path from 'path'
 import http from 'http'
 import cors from 'cors'
-import express from 'express'
-import { Loop, Now, log, env } from 'utils'
+import express, { Request, Response } from 'express'
+import { Delay, Loop, Now, log, env } from 'utils'
 import { Server } from "socket.io"
 import FileUpload from 'express-fileupload'
 
@@ -133,16 +132,32 @@ export class Host {
         const server = this.server.listen(this.port, '0.0.0.0', () => {
 
             this.port = server.address().port
+            const isProd = process.env.MODE === 'production'
+            let canLog = true
+            Delay(() => { canLog = false }, 10 * 1000)
 
             if (log.success(`Created host: ${local}:${server.address().port}/${this.name}`) && this.redis) { /** @_RETRY_REQUIRED_ **/
 
-                const push = () => {
-                    log.info(`[Exposing] -> ${this.name} ...`)
-                    Pub.publish("expose", JSON.stringify({ name: this.name, http: `${local}:${server.address().port}`, ws: `${ws}:${server.address().port}` }))
-                }
                 const retry = Loop(() => { push() }, 2500)
-                Sub.subscribe('expose_reply', (err: any, e: string) => err ? log.error(err.message) : log.info(`Subscribed channels: ${e}`) && push())
-                Sub.on("message", (channel: string, message: string) => message === `${this.name}` && log.success(`[Exposing] -> ${channel} / ${message}`) && clearInterval(retry))
+
+                const push = () => {
+
+                    canLog && log.info(`[Exposing] -> ${this.name} ...`)
+                    Pub.publish("expose", JSON.stringify({ name: this.name, http: `${local}:${server.address().port}`, ws: `${ws}:${server.address().port}` }))
+
+                }
+
+                Sub.subscribe('expose_reply', (err: any, e: string) => {
+
+                    err ? log.error(err.message) : log.info(`Subscribed channels: ${e}`) && push()
+
+                })
+
+                isProd && Sub.on("message", (channel: string, message: string) => {
+
+                    message === `${this.name}` && log.success(`[Exposing] -> ${channel} / ${message}`) && clearInterval(retry)
+
+                })
 
             }
 
@@ -157,7 +172,7 @@ export class Host {
         this.io.sockets.emit(channel, data)
     }
 
-    on = (channel: string, callback: any) => {
+    on = (channel: string, callback: (req: Request, res: Response) => void) => {
         const y = (channel ?? '/')[0] === '/' || channel === '*'
         this.requests[y ? channel : `/${channel}`] = callback
     }
