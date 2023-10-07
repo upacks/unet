@@ -10,13 +10,6 @@ const token = env.token ?? "-"
 
 // ==================== CLASS: CONNECTION ==================== //
 
-export interface iConnection {
-    name: string /** host name **/
-    proxy?: string /** proxy server **/
-    token?: string /** bearer **/
-    timeout?: number /** request timeout **/
-}
-
 export class Connection {
 
     public cio: any
@@ -25,13 +18,23 @@ export class Connection {
     public token: string
     public proxy: string
     public timeout: number
+    public rejectUnauthorized: boolean
 
-    constructor(conf: iConnection) {
+    constructor(conf: {
+
+        name: string /** host name **/
+        proxy?: string /** proxy server **/
+        token?: string /** bearer **/
+        timeout?: number /** request timeout **/
+        rejectUnauthorized?: boolean /** Ignore: Local issuer certificate **/
+
+    }) {
 
         this.name = conf.name ?? '-'
         this.token = conf.token ?? token
         this.proxy = conf.proxy ?? proxy
         this.timeout = conf.timeout ?? 5000
+        this.rejectUnauthorized = typeof conf.rejectUnauthorized === 'boolean' ? conf.rejectUnauthorized : true
 
         log.success(`Creating connection: ${this.proxy}/${this.name}`)
 
@@ -40,6 +43,7 @@ export class Connection {
             path: `/${this.name}/socket.io/`,
             query: { host: this.name, whoami },
             auth: { token: `Bearer ${this.token}` },
+            rejectUnauthorized: this.rejectUnauthorized,
         })
 
         this.cio.on("connect", () => {
