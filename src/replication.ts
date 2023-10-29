@@ -272,7 +272,7 @@ export class ReplicaSlave {
             if ((Date.now() - this.success) > (15 * 1000)) { this.isBusy = false }
             if ((Date.now() - this.lastPull) > (10 * 1000)) { shake() }
 
-            if (this.hopes.length > 0 && this.isBusy === false) {
+            if (this.hopes.length > 0 && this.isBusy === false && channel.cio.connected) {
                 g && log.warn(` ✩ `)
                 this.hopes = []
                 this.isBusy = true
