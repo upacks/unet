@@ -7,7 +7,7 @@ import { Server } from "socket.io"
 import FileUpload from 'express-fileupload'
 
 import { Redis } from './redis'
-import { execute } from './util'
+import { execute, authenticate } from './util'
 
 // ==================== CLASS: HOST ==================== //
 
@@ -35,7 +35,7 @@ export class Host {
     }) {
 
         this.name = conf.name
-        this.timeout = conf.timeout ?? 5000
+        this.timeout = conf.timeout ?? 10000
         this.port = conf.port ?? 0
         this.redis = conf.hasOwnProperty('redis') ? conf.redis : true
 
@@ -91,11 +91,27 @@ export class Host {
             this.app.use(`/${this.name}`, (req, res) => {
 
                 fs.readFile(html, (err, content) => {
-                    if (err) {
-                        res.status(500).send(err.message)
-                    } else {
-                        const cb = this.requests[req.path] ?? this.requests['*'] ?? null
-                        cb ? execute(cb, req, res, content.toString()).then(e => res.send(e)).catch(e => res.status(500).send(`console.log(${e.message})`)) : res.status(404).send('console.log("Not found")')
+                    if (err) { res.status(500).send(err.message) }
+                    else {
+
+                        let cb = null
+
+                        if (this.requests.hasOwnProperty(req.path) && this.requests[req.path].hasOwnProperty('callback')) {
+
+                            const { callback } = this.requests[req.path]
+
+                            cb = callback
+
+                        } else { cb = this.requests['*'] ?? null }
+
+                        if (cb) {
+
+                            execute(cb, req, res, content.toString())
+                                .then(e => res.send(e))
+                                .catch(e => res.status(500).send(`console.log(${e.message})`))
+
+                        } else { res.status(404).send('console.log("Not found")') }
+
                     }
                 })
 
@@ -105,23 +121,33 @@ export class Host {
 
             this.app.use(`/${this.name}`, (req, res) => {
 
-                const cb = this.requests[req.path] ?? this.requests['*'] ?? null
+
+                let cb = null
+
+                if (this.requests.hasOwnProperty(req.path) && this.requests[req.path].hasOwnProperty('callback')) {
+
+                    const { callback, authorize } = this.requests[req.path]
+
+                    cb = callback
+
+                    if (authorize) {
+
+                        const user = authenticate(req)
+                        user === null && res.status(401).send(`Unauthorized!`)
+                        req.user = user
+
+                    }
+
+
+                } else { cb = this.requests['*'] ?? null }
 
                 if (cb) {
 
-                    execute(cb, req, res, '').then(e => {
+                    execute(cb, req, res, '')
+                        .then(e => res.send(e))
+                        .catch(e => res.status(500).send(e.message))
 
-                        res.send(e)
-
-                    }).catch(e => {
-
-                        res.status(500).send(e.message)
-
-                    })
-
-                } else {
-                    res.status(404).send('Not found!')
-                }
+                } else { res.status(404).send('Not found!') }
 
             })
 
@@ -172,9 +198,18 @@ export class Host {
         this.io.sockets.emit(channel, data)
     }
 
-    on = (channel: string, callback: (req: Request, res: Response) => void) => {
+    _on = (channel: string, callback: (req: Request, res: Response) => void, authorize: boolean = false) => {
+
         const y = (channel ?? '/')[0] === '/' || channel === '*'
         this.requests[y ? channel : `/${channel}`] = callback
+
+    }
+
+    on = (channel: string, callback: (req: Request, res: Response) => void, authorize: boolean = false) => {
+
+        const y = (channel ?? '/')[0] === '/' || channel === '*'
+        this.requests[y ? channel : `/${channel}`] = { callback, authorize }
+
     }
 
     exit = () => {
