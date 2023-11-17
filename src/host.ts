@@ -14,6 +14,14 @@ import { execute, authenticate } from './util'
 const ws = env.ws ?? "ws://127.0.0.1"
 const local = env.local ?? "http://127.0.0.1"
 
+type UserRequest = Request & {
+    user: {
+        proj: string
+        user: string
+        level: number
+    }
+}
+
 export class Host {
 
     public server
@@ -133,7 +141,11 @@ export class Host {
                     if (authorize) {
 
                         const user = authenticate(req)
-                        user === null && res.status(401).send(`Unauthorized!`)
+
+                        if (user === null) {
+                            res.status(401).send(`Unauthorized!`)
+                            return null
+                        }
                         req.user = user
 
                     }
@@ -205,7 +217,7 @@ export class Host {
 
     }
 
-    on = (channel: string, callback: (req: Request, res: Response) => void, authorize: boolean = false) => {
+    on = (channel: string, callback: (req: UserRequest, res: Response) => void, authorize: boolean = false) => {
 
         const y = (channel ?? '/')[0] === '/' || channel === '*'
         this.requests[y ? channel : `/${channel}`] = { callback, authorize }

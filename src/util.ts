@@ -26,7 +26,7 @@ export const execute = (f, req, res, content) => new Promise((resolve, reject) =
 
 export const authenticate = (req: any) => {
 
-    if (req.hasOwnProperty('headers')) {
+    if ('headers' in req) {
 
         const { verified, role } = req.headers
 
@@ -44,6 +44,20 @@ export const authenticate = (req: any) => {
                         proj: project,
                         user: name,
                         level: roles.findIndex((s) => s === role) + 1,
+                    }
+
+                } catch { }
+
+            } else {
+
+                try {
+
+                    const { project, name } = req.headers
+
+                    return {
+                        proj: project,
+                        user: name,
+                        level: 0,
                     }
 
                 } catch { }

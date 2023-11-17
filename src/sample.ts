@@ -61,13 +61,23 @@ const REPRODUCE_LOOP_ISSUE = () => {
     Loop(() => { dest.last = Date.now() }, 1000)
 }
 
-REPRODUCE_LOOP_ISSUE()
+// REPRODUCE_LOOP_ISSUE()
 
 const HOST_SAMPLE = () => {
 
-    const API = new Host({ name: 'none' })
+    const API = new Host({ name: 'none', port: 5050 })
+
+    API.on('authorize', ({ headers, user }, res) => {
+
+        console.log(headers)
+        console.log(user)
+        return 'Autorized'
+
+    }, true)
 
 }
+
+HOST_SAMPLE()
 
 const PROXY_SAMPLE = () => {
 
