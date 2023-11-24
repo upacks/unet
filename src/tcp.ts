@@ -89,7 +89,12 @@ export class NetServer {
 
                         let index = this.clients.findIndex((o) => o.remoteAddress === client.remoteAddress && o.remotePort === client.remotePort)
                         index !== -1 && this.clients.splice(index, 1)
-                        this.onInfo('warning', { type: 'warn', message: `${this.alias} <- ${alias} [${index}] Disconnected [${t}]!` })
+
+                        try {
+                            this.onInfo('warning', { type: 'warn', message: `${this.alias} <- ${alias} [${index}] Disconnected [${t}]!` })
+                            client.end('Timed out!')
+                            client.destroy()
+                        } catch { }
 
                     }
 
@@ -97,6 +102,11 @@ export class NetServer {
                     client.on('error', () => exit('Error'))
                     client.on('close', () => exit('Close'))
                     client.on('end', () => exit('End'))
+
+                    client.on('drain', () => {
+                        this.onInfo('warning', { type: 'warn', message: 'Write buffer is empty now .. u can resume the writable stream' })
+                        client.resume()
+                    })
 
                     cb(client)
 
