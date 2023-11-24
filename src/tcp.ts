@@ -85,13 +85,18 @@ export class NetServer {
 
                     }
 
-                    client.on('close', (data: any) => {
+                    const exit = (t: string) => {
 
                         let index = this.clients.findIndex((o) => o.remoteAddress === client.remoteAddress && o.remotePort === client.remotePort)
                         index !== -1 && this.clients.splice(index, 1)
-                        this.onInfo('warning', { type: 'warn', message: `${this.alias} <- ${alias} [${index}] Disconnected!` })
+                        this.onInfo('warning', { type: 'warn', message: `${this.alias} <- ${alias} [${index}] Disconnected [${t}]!` })
 
-                    })
+                    }
+
+                    client.on('timeout', () => exit('Timeout'))
+                    client.on('error', () => exit('Error'))
+                    client.on('close', () => exit('Close'))
+                    client.on('end', () => exit('End'))
 
                     cb(client)
 
