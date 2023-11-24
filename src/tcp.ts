@@ -92,7 +92,7 @@ export class NetServer {
 
                         try {
                             this.onInfo('warning', { type: 'warn', message: `${this.alias} <- ${alias} [${index}] Disconnected [${t}]!` })
-                            client.end('Timed out!')
+                            client.end(t)
                             client.destroy()
                         } catch { }
 
