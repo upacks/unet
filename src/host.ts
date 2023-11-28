@@ -14,12 +14,15 @@ import { execute, authenticate } from './util'
 const ws = env.ws ?? "ws://127.0.0.1"
 const local = env.local ?? "http://127.0.0.1"
 
-type UserRequest = Request & {
-    user: {
-        proj: string
-        user: string
-        level: number
-    }
+export type tUser = {
+    proj: string
+    type: string
+    name: string
+    level: number
+}
+
+export interface iUser {
+    user?: tUser
 }
 
 export class Host {
@@ -217,7 +220,7 @@ export class Host {
 
     }
 
-    on = (channel: string, callback: (req: UserRequest, res: Response) => void, authorize: boolean = false) => {
+    on = (channel: string, callback: (req: iUser & Request, res: Response) => void, authorize: boolean = false) => {
 
         const y = (channel ?? '/')[0] === '/' || channel === '*'
         this.requests[y ? channel : `/${channel}`] = { callback, authorize }

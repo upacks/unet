@@ -1,3 +1,7 @@
+import { PackageExists } from 'utils'
+
+export const { Op }: any = PackageExists('sequelize') ? require('sequelize') : { Op: {} }
+
 export const isAsync = (p: any) => p && (p.constructor.name === "AsyncFunction" || (typeof p === 'object' && typeof p.then === 'function'))
 
 export const execute = (f, req, res, content) => new Promise((resolve, reject) => {
@@ -42,7 +46,8 @@ export const authenticate = (req: any) => {
 
                     return {
                         proj: project,
-                        user: name,
+                        type: 'owner',
+                        name: name,
                         level: roles.findIndex((s) => s === role) + 1,
                     }
 
@@ -52,11 +57,12 @@ export const authenticate = (req: any) => {
 
                 try {
 
-                    const { project, name } = req.headers
+                    const { project, type, name } = req.headers
 
                     return {
                         proj: project,
-                        user: name,
+                        type: typeof type === 'string' ? type : 'unknown',
+                        name: name,
                         level: 0,
                     }
 

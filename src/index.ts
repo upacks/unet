@@ -1,8 +1,13 @@
-export { Connection } from './connection'
-export { Host } from './host'
-export { Core, Proxy } from './proxy'
+
 export { Redis } from './redis'
-export { ReplicaMaster, ReplicaSlave } from './replication'
+
+export { Host } from './host'
+export { Connection } from './connection'
+
+export { Core, Proxy } from './proxy'
 export { NetServer, NetClient } from './tcp'
+
+export { ReplicaMaster } from './replication/master'
+export { ReplicaSlave } from './replication/slave'
 
 require.main === module && require('./sample')
