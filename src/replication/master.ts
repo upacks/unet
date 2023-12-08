@@ -14,7 +14,7 @@ export class ReplicaMaster {
         name: string /** Table name */,
         table: any /** Sequel Table */,
         channel: Host /** Host endpoint */,
-        authorize: boolean /** Require Bearer & Will try to save @tUser */,
+        authorize?: boolean /** Require Bearer & Will try to save @tUser */,
         limit?: number /** Rows in a request */,
         debug?: boolean,
         onPull?: () => {} | any /** Customize: Pull method */,

@@ -8,6 +8,10 @@ const whoami = env.whoami ?? "Browser"
 const proxy = env.proxy ?? window.location.origin
 const token = env.token ?? "-"
 
+type tStatus = 'success' | 'error ' | 'warning'
+type tCallback = (err: any, data: any) => any
+type tCallbackSocket = (data: any) => any
+
 // ==================== CLASS: CONNECTION ==================== //
 
 export class Connection {
@@ -47,18 +51,37 @@ export class Connection {
         })
 
         this.cio.on("connect", () => {
+
+            typeof this.cio.status === 'function' && this.cio.status('success')
             log.success(`ws:${this.name}: Connection made [${this.proxy}/${this.name}]`)
             this.cio.sendBuffer = []
+
         })
 
         this.cio.on('disconnect', () => {
+
+            typeof this.cio.status === 'function' && this.cio.status('error')
             log.warn(`ws:${this.name}: Disconnected [${this.proxy}/${this.name}]`)
             Delay(() => this.cio.connect(), 2500)
+
+        })
+
+        this.cio.on("reconnect", () => {
+
+            typeof this.cio.status === 'function' && this.cio.status('warning')
+
         })
 
         this.cio.on("connect_error", (error) => {
-            console.log(error)
-            log.error(`ws:${this.name}: ${error.message}`)
+
+            typeof this.cio.status === 'function' && this.cio.status('warning')
+
+            try {
+                log.error(`ws:${this.name}: ${error.type} / ${error.description.message}`)
+            } catch {
+                log.error(`ws:${this.name}: ${error.message}`)
+            }
+
         })
 
         this.caxios = axios.create({
@@ -69,6 +92,8 @@ export class Connection {
                 'Authorization': `Bearer ${this.token}`,
                 'whoami': whoami,
             },
+            // httpAgent: new http.Agent({ keepAlive: true }),
+            // httpsAgent: new https.Agent({ keepAlive: true, rejectUnauthorized: this.rejectUnauthorized }),
             maxContentLength: Infinity,
             maxBodyLength: Infinity,
         })
@@ -80,19 +105,19 @@ export class Connection {
 
     /** _____________________________________________________________ HTTP-Client _____________________________________________________________ **/
 
-    get = (channel, data) => new Promise((resolve, reject) => {
+    get = (channel: string, data: any) => new Promise((resolve, reject) => {
         this.caxios.get(channel, { params: data })
             .then(({ data }) => resolve(data))
             .catch(reject)
     })
 
-    set = (channel, data) => new Promise((resolve, reject) => {
+    set = (channel: string, data: any) => new Promise((resolve, reject) => {
         this.caxios.post(channel, data)
             .then(({ data }) => resolve(data))
             .catch(reject)
     })
 
-    pull = (channel, data, cb) => {
+    pull = (channel: string, data: any, cb: tCallback) => {
         if (typeof cb === 'undefined')
             return this.get(channel, data)
         else
@@ -101,7 +126,7 @@ export class Connection {
                 .catch(err => cb(err, null))
     }
 
-    push = (channel, data, cb) => {
+    push = (channel: string, data: any, cb: tCallback) => {
         if (typeof cb === 'undefined')
             return this.set(channel, data)
         else
@@ -112,7 +137,7 @@ export class Connection {
 
     /** _____________________________________________________________ HTTP/WS-Client _____________________________________________________________ **/
 
-    poll = (channel, data, cb) => {
+    poll = (channel: string, data: any, cb: tCallback) => {
 
         const since = new Since(1000)
         const update = () => this.pull(channel, data, cb)
@@ -124,12 +149,16 @@ export class Connection {
 
     /** _____________________________________________________________ WS-Client _____________________________________________________________ **/
 
-    emit = (channel, data, volatile = false) => {
+    emit = (channel: string, data: any, volatile = false) => {
         volatile ? this.cio.volatile.emit(channel, data) : this.cio.emit(channel, data)
     }
 
-    on = (channel, cb) => {
+    on = (channel: string, cb: tCallbackSocket) => {
         this.cio.on(channel, cb)
+    }
+
+    status = (cb: (name: tStatus) => any) => {
+        this.cio.status = cb
     }
 
 }

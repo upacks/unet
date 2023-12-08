@@ -4,7 +4,29 @@ import { Shell, Safe, Delay, Loop, log } from 'utils'
 
 import { NetClient, NetServer } from './tcp'
 import { Host } from './host'
+import { Connection } from './connection'
 import { Proxy, Core } from './proxy'
+
+const HOST_AND_CONNECTION = () => {
+
+    const api = new Host({ name: 'HOST', port: 5050 })
+    api.on('/', () => 'hi')
+
+    Delay(() => {
+
+        const io = new Connection({ name: 'HOST', proxy: 'localhost:5050' })
+
+        io.status((name) => {
+            console.log(`[${name}]`)
+        })
+
+        io.poll('ok', null, (err, data) => { })
+
+    }, 2500)
+
+}
+
+// HOST_AND_CONNECTION()
 
 const REPRODUCE_LOOP_ISSUE = () => {
 
@@ -61,8 +83,6 @@ const REPRODUCE_LOOP_ISSUE = () => {
     Loop(() => { dest.last = Date.now() }, 1000)
 }
 
-// REPRODUCE_LOOP_ISSUE()
-
 const HOST_SAMPLE = () => {
 
     const API = new Host({ name: 'none', port: 5050 })
@@ -76,8 +96,6 @@ const HOST_SAMPLE = () => {
     }, true)
 
 }
-
-HOST_SAMPLE()
 
 const PROXY_SAMPLE = () => {
 
