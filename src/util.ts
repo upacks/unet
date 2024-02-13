@@ -1,4 +1,5 @@
-import { PackageExists } from 'utils'
+import jwt from 'jsonwebtoken'
+import { PackageExists, env } from 'utils'
 
 export const { Op }: any = PackageExists('sequelize') ? require('sequelize') : { Op: {} }
 
@@ -27,6 +28,23 @@ export const execute = (f, req, res, content) => new Promise((resolve, reject) =
 
     }
 })
+
+export const tryAuthorize = (token: string = '', secret = '') => {
+
+    try {
+
+        const verify: any = jwt.verify(token.split(' ')[1], secret)
+        return {
+            status: true,
+            message: 'OK',
+            ...authenticate({ headers: { verified: 'yes', ...verify } })
+        }
+
+    } catch (err) {
+        return { status: false, message: err.message }
+    }
+
+}
 
 export const authenticate = (req: any) => {
 

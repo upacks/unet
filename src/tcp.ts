@@ -30,7 +30,7 @@ export class NetServer {
 
         this.host = host ?? '127.0.0.1'
         this.port = port ?? 0
-        this.secret = secret ?? env.secret ?? 'secret'
+        this.secret = secret ?? env.TOKEN_SECRET ?? 'gearlink'
         this.alias = `TCP_Server<${this.host}:${this.port}>`
         this.create(cb)
 

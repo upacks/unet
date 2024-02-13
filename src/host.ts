@@ -7,7 +7,7 @@ import { Server } from "socket.io"
 import FileUpload from 'express-fileupload'
 
 import { Redis } from './redis'
-import { execute, authenticate } from './util'
+import { execute, authenticate, tryAuthorize } from './util'
 
 // ==================== CLASS: HOST ==================== //
 
@@ -36,6 +36,7 @@ export class Host {
     public timeout: number
     public port: number
     public redis: boolean
+    public secret: string
 
     constructor(conf: {
         name: string /** name alias **/
@@ -43,12 +44,14 @@ export class Host {
         static?: string /** if serves static **/
         timeout?: number /** request timeout **/
         redis?: boolean /** use redis **/
+        secret?: string /** jwt hash **/
     }) {
 
         this.name = conf.name
         this.timeout = conf.timeout ?? 10000
         this.port = conf.port ?? 0
         this.redis = conf.hasOwnProperty('redis') ? conf.redis : true
+        this.secret = conf.secret ?? env.TOKEN_SECRET ?? 'gearlink'
 
         log.success(`Creating host: ${local}:${this.port}/${this.name}`)
 
@@ -74,8 +77,13 @@ export class Host {
         })
 
         this.io.on('connection', (socket) => {
+
             log.success(`A client connected ${socket.id}`)
+
+            if (socket?.handshake) socket.handshake.user = tryAuthorize(socket?.handshake?.auth?.token, this.secret)
+
             socket.on('disconnect', () => log.warn(`A client disconnected ${socket.id}`))
+
         })
 
         if (conf.static) { // ==================== EXPOSE_STATICS ==================== //
@@ -213,6 +221,21 @@ export class Host {
         this.io.sockets.emit(channel, data)
     }
 
+    emitBy = (channel: string, data: any, cb: (user: tUser & { status: boolean, message: string }) => boolean) => {
+
+        this.io.fetchSockets().then((ls) => {
+
+            ls.map((socket) => {
+
+                cb(socket?.handshake?.user ?? { status: false, message: 'unknown' }) && socket.emit(channel, data)
+
+            })
+
+        }).catch((err) => { })
+
+    }
+
+    /** Depricated **/
     _on = (channel: string, callback: (req: Request, res: Response) => void, authorize: boolean = false) => {
 
         const y = (channel ?? '/')[0] === '/' || channel === '*'

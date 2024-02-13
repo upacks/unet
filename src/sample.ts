@@ -9,24 +9,42 @@ import { Proxy, Core } from './proxy'
 
 const HOST_AND_CONNECTION = () => {
 
+    const pro = new Core({ port: 8080 })
     const api = new Host({ name: 'HOST', port: 5050 })
+
     api.on('/', () => 'hi')
+
+    Loop(() => api.emit('sms', `${Date.now()}`), 2500)
+
+    const monit = () => {
+
+        api.emitBy('sms', 'Boys', (user) => {
+
+            console.log('server', user)
+            return user.proj === 'VMP'
+        })
+
+    }
+
+    Delay(() => monit(), 8 * 1000)
+    Delay(() => monit(), 10 * 1000)
 
     Delay(() => {
 
-        const io = new Connection({ name: 'HOST', proxy: 'localhost:5050' })
+        const io = new Connection({ name: 'HOST', proxy: 'http://localhost:5050', token: 'RB4c' })
+        const OM = new Connection({ name: 'HOST', proxy: 'http://localhost:5050', token: 'YXa7MGzOz8tnNoOlNodQHnj__3rLoLFecyYW_fzRB4c' })
 
-        io.status((name) => {
-            console.log(`[${name}]`)
-        })
+        io.on('sms', (data) => console.log('IO', data))
+        OM.on('sms', (data) => console.log('OM', data))
 
-        io.poll('ok', null, (err, data) => { })
+        Delay(() => { io.cio.disconnect() }, 15 * 1000)
+        Delay(() => { OM.cio.disconnect() }, 18 * 1000)
 
     }, 2500)
 
 }
 
-// HOST_AND_CONNECTION()
+HOST_AND_CONNECTION()
 
 const REPRODUCE_LOOP_ISSUE = () => {
 
