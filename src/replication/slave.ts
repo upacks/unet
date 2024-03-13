@@ -57,14 +57,15 @@ export class ReplicaSlave {
 
         const pull = () => {
 
+            const tid = `TID${Date.now()}`
             if (logs.length > 0) {
-                log.warn(`~~~ ~~~ [REPLICATE] ~~~ ~~~`)
+                log.warn(`~~~ ~~~ [${tid}] ~~~ ~~~`)
                 for (const x of logs) log[x[0]](x[1])
                 log.warn(``)
             }
 
             logs = []
-            logs.push('success', `Loop starting @${Date.now()}`)
+            logs.push(['success', `Loop starting @${Date.now()}`])
 
             _onPull((latest: any = {}) => {
 
@@ -72,33 +73,33 @@ export class ReplicaSlave {
 
                     latest = latest ?? {}
                     const _cp1 = { id: latest.id ?? '', src: 'master', dst: me, updatedAt: latest.updatedAt ?? moment().add(-(retain[0]), retain[1]).format(dateFormat) }
-                    logs.push('success', `Found checkpoint ID:${_cp1.id}`)
+                    logs.push(['success', `Found checkpoint ID:${_cp1.id}`])
 
-                    channel.pull(`${name}-pulling`, { checkpoint: _cp1 }, (err, response) => {
+                    channel.pull(`${name}-pulling`, { checkpoint: _cp1, tid }, (err, response) => {
 
-                        if (err) { tryAgain() && logs.push('error', err.message ?? 'Unknown') } else {
+                        if (err) { tryAgain() && logs.push(['error', err.message ?? 'Unknown']) } else {
 
                             const checkpoint = response?.checkpoint ?? {}
                             const items = response?.items ?? []
 
-                            logs.push('success', `Received ${items.length} items & Saving them ...`)
+                            logs.push(['success', `Received ${items.length} items & Saving them ...`])
 
                             _onSave(items)
                             const _cp2 = { id: checkpoint.id ?? '', src: me, dst: checkpoint.dst ?? 'master', updatedAt: checkpoint.updatedAt ?? moment().add(-(retain[0]), retain[1]).format(dateFormat) }
 
-                            logs.push('success', `Checkpoint ID:${checkpoint.id} from the Server`)
+                            logs.push(['success', `Checkpoint ID:${checkpoint.id} from the Server`])
 
                             _onPush(_cp2, (rows) => {
 
                                 if (rows && rows.length > 0) {
 
-                                    logs.push('success', `Pushing ${rows.length} items`)
-                                    channel.push(`${name}-pushing`, { items: rows }, (err, data) => {
+                                    logs.push(['success', `Pushing ${rows.length} items`])
+                                    channel.push(`${name}-pushing`, { items: rows, tid }, (err, data) => {
 
                                         if (err) {
-                                            logs.push('error', `${err.message ?? 'Unknown'}`)
+                                            logs.push(['error', `${err.message ?? 'Unknown'}`])
                                         } else {
-                                            logs.push('success', `${Sfy(data).slice(0, 128)}`)
+                                            logs.push(['success', `${Sfy(data).slice(0, 128)}`])
                                             this.success = Date.now()
                                         }
 
@@ -110,7 +111,7 @@ export class ReplicaSlave {
 
                                 } else {
 
-                                    logs.push('success', `No items to push`)
+                                    logs.push(['success', `No items to push`])
                                     if (items.length === limit) { //  || (rows && rows.length > 0 && rows.length === limit) Removing it
                                         this.isBusy = false
                                         shake()
@@ -126,7 +127,7 @@ export class ReplicaSlave {
 
                     })
 
-                } catch (err) { tryAgain() && logs.push('error', err.message ?? 'Unknown') }
+                } catch (err) { tryAgain() && logs.push(['error', err.message ?? 'Unknown']) }
 
             })
 
