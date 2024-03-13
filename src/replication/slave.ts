@@ -45,7 +45,9 @@ export class ReplicaSlave {
 
         this.onChangeCall = onChange ?? ((...n: any) => true)
         const shake = (e: any = {}) => this.hopes.push(true)
+        const tryAgain = () => { this.isBusy = false; shake(); return true; }
         _onTrigger(shake)
+        let logs: any = []
 
         channel.on(`${me}-${name}`, (sms) => sms === 'shake' && shake())
         channel.on(`all-${name}`, (sms) => sms === 'shake' && shake())
@@ -55,73 +57,60 @@ export class ReplicaSlave {
 
         const pull = () => {
 
-            g && log.info(`[S.Pull] -> Start[0] / ${Now()}`)
+            if (logs.length > 0) {
+                log.warn(`~~~ ~~~ [REPLICATE] ~~~ ~~~`)
+                for (const x of logs) log[x[0]](x[1])
+                log.warn(``)
+            }
+
+            logs = []
+            logs.push('success', `Loop starting @${Date.now()}`)
 
             _onPull((latest: any = {}) => {
-
-                g && log.info(`[S.Pull] -> Start[1] / ${Sfy(latest).slice(0, 128)} [...]`)
 
                 try {
 
                     latest = latest ?? {}
-                    const _checkpoint = {
-                        id: latest.id ?? '',
-                        src: 'master',
-                        dst: me,
-                        updatedAt: latest.updatedAt ?? moment().add(-(retain[0]), retain[1]).format(dateFormat),
-                    }
+                    const _cp1 = { id: latest.id ?? '', src: 'master', dst: me, updatedAt: latest.updatedAt ?? moment().add(-(retain[0]), retain[1]).format(dateFormat) }
+                    logs.push('success', `Found checkpoint ID:${_cp1.id}`)
 
-                    channel.pull(`${name}-pulling`, { checkpoint: _checkpoint }, (err, response) => {
+                    channel.pull(`${name}-pulling`, { checkpoint: _cp1 }, (err, response) => {
 
-                        if (err) {
-
-                            log.warn(`[S.Pull] -> Fail[1] / ${err.message ?? 'unknown'}`)
-                            this.isBusy = false
-                            shake()
-
-                        } else {
+                        if (err) { tryAgain() && logs.push('error', err.message ?? 'Unknown') } else {
 
                             const checkpoint = response?.checkpoint ?? {}
                             const items = response?.items ?? []
 
-                            g && log.success(`[S.Pull] -> Success / ${Sfy(checkpoint).slice(0, 128)} [...] / Items: ${items.length}`)
+                            logs.push('success', `Received ${items.length} items & Saving them ...`)
 
                             _onSave(items)
+                            const _cp2 = { id: checkpoint.id ?? '', src: me, dst: checkpoint.dst ?? 'master', updatedAt: checkpoint.updatedAt ?? moment().add(-(retain[0]), retain[1]).format(dateFormat) }
 
-                            const _checkpoint = {
-                                id: checkpoint.id ?? '',
-                                src: me,
-                                dst: checkpoint.dst ?? 'master',
-                                updatedAt: checkpoint.updatedAt ?? moment().add(-(retain[0]), retain[1]).format(dateFormat),
-                            }
+                            logs.push('success', `Checkpoint ID:${checkpoint.id} from the Server`)
 
-                            g && log.info(`[S.Push] -> Start / ${Sfy(_checkpoint).slice(0, 128)} [...]`)
-
-                            _onPush(_checkpoint, (rows) => {
-
-                                g && log.info(`[S.Push] -> Items / ${rows ? rows.length : '(-)'}`)
+                            _onPush(_cp2, (rows) => {
 
                                 if (rows && rows.length > 0) {
 
+                                    logs.push('success', `Pushing ${rows.length} items`)
                                     channel.push(`${name}-pushing`, { items: rows }, (err, data) => {
 
                                         if (err) {
-                                            log.warn(`[S.Push] -> Fail / ${err.message ?? 'unknown'}`)
+                                            logs.push('error', `${err.message ?? 'Unknown'}`)
                                         } else {
-                                            g && log.success(`[S.Push] -> Success / ${Sfy(data).slice(0, 128)} [...]`)
+                                            logs.push('success', `${Sfy(data).slice(0, 128)}`)
                                             this.success = Date.now()
                                         }
 
                                         this.isBusy = false
-
                                         if (items.length === limit || rows.length === limit) { shake() }
-
                                         return { err, data }
 
                                     })
 
                                 } else {
 
+                                    logs.push('success', `No items to push`)
                                     if (items.length === limit) { //  || (rows && rows.length > 0 && rows.length === limit) Removing it
                                         this.isBusy = false
                                         shake()
@@ -134,15 +123,10 @@ export class ReplicaSlave {
                             })
 
                         }
+
                     })
 
-                } catch (err) {
-
-                    log.warn(`[S.Pull] -> Fail[0] / ${err.message ?? 'unknown'}`)
-                    this.isBusy = false
-                    shake()
-
-                }
+                } catch (err) { tryAgain() && logs.push('error', err.message ?? 'Unknown') }
 
             })
 
@@ -154,11 +138,12 @@ export class ReplicaSlave {
             if ((Date.now() - this.lastPull) > (10 * 1000)) { shake() }
 
             if (this.hopes.length > 0 && this.isBusy === false && channel.cio.connected) {
-                g && log.warn(` ✩ `)
+
                 this.hopes = []
                 this.isBusy = true
                 this.lastPull = Date.now()
                 pull()
+
             }
 
         }, this.delay)
@@ -169,7 +154,7 @@ export class ReplicaSlave {
 
         this.table.findOne({ where: { src: { [Op.not]: this.name } }, order: [['updatedAt', 'DESC'], ['id', 'DESC']], raw: true }).then(checkpoint => {
             next(checkpoint)
-        }).catch(err => {
+        }).catch((err) => {
             next(null)
         })
 

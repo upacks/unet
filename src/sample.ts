@@ -44,8 +44,6 @@ const HOST_AND_CONNECTION = () => {
 
 }
 
-HOST_AND_CONNECTION()
-
 const REPRODUCE_LOOP_ISSUE = () => {
 
     log.info(`BN_RTCM server is running on ${process.pid} 🚀🚀🚀 \n`)

@@ -46,13 +46,15 @@ export class ReplicaMaster {
 
             try {
 
-                g && log.info(`[M.Pull] -> Start / ${Sfy(query.checkpoint).slice(0, 128)} [...]`)
-                const { items, checkpoint } = await _onPull(query.checkpoint, user)
+                const { tid, checkpoint: cp } = query
+                g && log.info(`[REP_${tid}] Pulling:Req ${Sfy(cp).slice(0, 96)} [...]`)
+                const { items, checkpoint } = await _onPull(cp, user)
+                g && log.info(`[REP_${tid}] Pulling:Res Items:${(items ?? []).length} Checkpoint: ${(checkpoint?.id ?? '#')}`)
                 return { items: items ?? [], checkpoint: checkpoint ?? {} }
 
             } catch (error) {
 
-                log.warn(`[M.Pull] -> Fail / ${error.message}`)
+                log.warn(`[REP_${query.tid ?? '#'}] @Pulling / ${error.message}`)
                 return { items: [], checkpoint: {} }
 
             }
@@ -64,12 +66,13 @@ export class ReplicaMaster {
 
             try {
 
-                g && log.info(`[M.Push] -> Start / ${Sfy(body).slice(0, 128)} [...]`)
-                return await _onSave(body.items, user)
+                const { tid, items } = body
+                g && log.info(`[REP_${tid}] Pushing ${Sfy(body).slice(0, 128)} [...]`)
+                return await _onSave(items, user)
 
             } catch (error) {
 
-                log.warn(`[M.Push] -> Fail / ${Sfy(error.message)} [...]`)
+                log.warn(`[REP_${body.tid ?? '#'}] @Pushing / ${error.message}`)
                 return 'fail'
 
             }
@@ -104,6 +107,9 @@ export class ReplicaMaster {
                 order: [['updatedAt', 'ASC'], ['id', 'ASC']],
                 raw: true,
             })
+
+            /** Cleaning the payload of deleted items **/
+            for (const x of items) if (x.deletedAt !== null) x.data = null
 
             /** Last-Item of Slave **/
             const latest = await this.table.findOne({
