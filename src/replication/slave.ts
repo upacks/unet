@@ -135,21 +135,17 @@ export class ReplicaSlave {
 
         Loop(() => {
 
-            if ((Date.now() - this.success) > (15 * 1000)) { this.isBusy = false }
-            if ((Date.now() - this.lastPull) > (10 * 1000)) { shake() }
-
             if (this.hopes.length > 0 && this.isBusy === false && channel.cio.connected) {
 
-                if ((Date.now() - this.lastPull) > 500) {
-
-                    this.hopes = []
-                    this.isBusy = true
-                    this.lastPull = Date.now()
-                    pull()
-
-                }
+                this.hopes = []
+                this.isBusy = true
+                this.lastPull = Date.now()
+                pull()
 
             }
+
+            if ((Date.now() - this.success) > (30 * 1000)) this.isBusy = false
+            if ((Date.now() - this.lastPull) > (30 * 1000)) shake()
 
         }, this.delay)
 
