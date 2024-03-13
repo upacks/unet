@@ -89,6 +89,7 @@ export class Connection {
             timeout: this.timeout,
             headers: {
                 'Accept': 'application/json',
+                'Accept-Encoding': 'gzip',
                 'Authorization': `Bearer ${this.token}`,
                 'whoami': whoami,
             },

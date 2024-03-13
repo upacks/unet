@@ -140,10 +140,14 @@ export class ReplicaSlave {
 
             if (this.hopes.length > 0 && this.isBusy === false && channel.cio.connected) {
 
-                this.hopes = []
-                this.isBusy = true
-                this.lastPull = Date.now()
-                pull()
+                if ((Date.now() - this.lastPull) > 500) {
+
+                    this.hopes = []
+                    this.isBusy = true
+                    this.lastPull = Date.now()
+                    pull()
+
+                }
 
             }
 

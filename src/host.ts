@@ -59,7 +59,7 @@ export class Host {
 
         this.app = express()
         this.app.use(cors({ origin: '*' }))
-        this.app.use(express.json({ limit: '25mb' }))
+        this.app.use(express.json({ limit: '50mb' }))
         this.server = http.createServer(this.app)
         this.server.setTimeout(this.timeout)
 
