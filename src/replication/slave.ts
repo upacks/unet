@@ -59,7 +59,7 @@ export class ReplicaSlave {
 
             const tid = `TID${Date.now()}`
             if (logs.length > 0) {
-                log.warn(`~~~ ~~~ [${tid}] ~~~ ~~~`)
+                log.warn(`~~~ ~~~ [${name}:${tid}:${process.pid}] ~~~ ~~~`)
                 for (const x of logs) log[x[0]](x[1])
                 log.warn(``)
             }
@@ -111,7 +111,7 @@ export class ReplicaSlave {
 
                                 } else {
 
-                                    logs.push(['success', `No items to push`])
+                                    logs.push(['success', `No items to push (Len: ${items.length} Lim: ${limit})`])
                                     if (items.length === limit) { //  || (rows && rows.length > 0 && rows.length === limit) Removing it
                                         this.isBusy = false
                                         shake()
