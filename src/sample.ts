@@ -6,6 +6,30 @@ import { NetClient, NetServer } from './tcp'
 import { Host } from './host'
 import { Connection } from './connection'
 import { Proxy, Core } from './proxy'
+import { ReplicaMaster } from './replication2/master'
+import { ReplicaSlave } from './replication2/slave'
+
+const REPLICA = () => {
+
+    Safe(() => {
+
+        const api = new Host({ name: 'HOST', port: 4040, redis: false })
+        const MR = new ReplicaMaster({ api })
+        //
+
+    })
+
+    Safe(() => {
+
+        const api = new Connection({ name: 'HOST', proxy: 'http://localhost:4040', token: 'RB4c' })
+        const SR = new ReplicaSlave({ api })
+        //
+
+    })
+
+}
+
+REPLICA()
 
 const HOST_AND_CONNECTION = () => {
 

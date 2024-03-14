@@ -2,13 +2,21 @@ import { Host, tUser } from '../host'
 import { log, Sfy } from 'utils'
 import { Op } from '../util'
 
-export class ReplicaHost {
+interface iRM {
 
-    constructor({
+    api: Host /** Replication channel **/
+    log?: boolean
+    msgpackr?: boolean
 
-        bidirectional = true
+}
 
-    }) { }
+export class ReplicaMaster {
+
+    constructor(_: iRM) {
+
+        log.warn(`[ReplicaMaster] Initializing`)
+
+    }
 
     /** Get latest by source */
     last = async () => { }
