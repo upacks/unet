@@ -1,6 +1,6 @@
 {
   "name": "unet",
-  "version": "1.0.52",
+  "version": "1.0.53",
   "repository": "git@github.com:upacks/unet.git",
   "author": "gantulga.khuyag@gmail.com",
   "license": "MIT",
@@ -31,6 +31,7 @@
     "cors": "^2.8.5",
     "express": "^4.18.2",
     "express-fileupload": "^1.4.0",
+    "fflate": "^0.8.2",
     "http-proxy": "^1.18.1",
     "ioredis": "^5.2.5",
     "jsonwebtoken": "^9.0.0",

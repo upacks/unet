@@ -1,6 +1,6 @@
 /** TCP-Samples **/
 
-import { Shell, Safe, Delay, Loop, log } from 'utils'
+import { Shell, Safe, Delay, Loop, Sfy, log } from 'utils'
 
 import { NetClient, NetServer } from './tcp'
 import { Host } from './host'
@@ -8,22 +8,52 @@ import { Connection } from './connection'
 import { Proxy, Core } from './proxy'
 import { ReplicaMaster } from './replication2/master'
 import { ReplicaSlave } from './replication2/slave'
+import { state, chunk } from './replication2/test'
 
 const REPLICA = () => {
 
+    const payload = chunk
+
     Safe(() => {
 
-        const api = new Host({ name: 'HOST', port: 4040, redis: false })
+        const api = new Host({ name: 'event', port: 4040, redis: false })
         const MR = new ReplicaMaster({ api })
-        //
+
+        api.io.on('connection', (socket) => {
+
+            socket.on('error', console.log)
+
+            socket.on('data', (data, callback) => {
+
+                console.log(` - SERVER - `)
+
+                if (typeof payload === 'string') console.log(MR.unzip(data) === payload)
+                else console.log(Sfy(MR.unzip(data)) === Sfy(payload))
+
+                callback(`${data.length}b`)
+
+            })
+
+        })
 
     })
 
     Safe(() => {
 
-        const api = new Connection({ name: 'HOST', proxy: 'http://localhost:4040', token: 'RB4c' })
+        const api = new Connection({ name: 'event', proxy: 'http://localhost:4040' })
         const SR = new ReplicaSlave({ api })
-        //
+
+        Loop(() => {
+
+            console.log('')
+            console.log(` - CLIENT - `)
+            const data = SR.zip(payload)
+            api.cio.timeout(5000).emit('data', data.zip, (err, response) => {
+                console.log(err, response)
+                console.log(response === data.size)
+            })
+
+        }, 2500)
 
     })
 

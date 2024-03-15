@@ -74,6 +74,7 @@ export class Host {
         this.io = new Server(this.server, {
             transports: ['websocket', 'polling'],
             path: `/${this.name}/socket.io/`,
+            maxHttpBufferSize: 1024 /** 1kb **/
         })
 
         this.io.on('connection', (socket) => {

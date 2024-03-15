@@ -1,5 +1,8 @@
-import { Host, tUser } from '../host'
+import { unpack, pack } from 'msgpackr'
+import { unzlibSync } from 'fflate'
 import { log, Sfy } from 'utils'
+
+import { Host, tUser } from '../host'
 import { Op } from '../util'
 
 interface iRM {
@@ -15,6 +18,14 @@ export class ReplicaMaster {
     constructor(_: iRM) {
 
         log.warn(`[ReplicaMaster] Initializing`)
+
+    }
+
+    unzip = (zip) => {
+
+        const bin = unzlibSync(zip)
+        const data = unpack(bin)
+        return data
 
     }
 
