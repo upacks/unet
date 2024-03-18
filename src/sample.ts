@@ -12,6 +12,7 @@ import { state, chunk } from './replication2/test'
 
 const REPLICA = () => {
 
+    const zip = true
     const payload = chunk
 
     Safe(() => {
@@ -23,7 +24,7 @@ const REPLICA = () => {
 
             socket.on('error', console.log)
 
-            socket.on('data', (data, callback) => {
+            socket.on('data', (zip, data, callback) => {
 
                 console.log(` - SERVER - `)
 
@@ -48,7 +49,8 @@ const REPLICA = () => {
             console.log('')
             console.log(` - CLIENT - `)
             const data = SR.zip(payload)
-            api.cio.timeout(5000).emit('data', data.zip, (err, response) => {
+
+            api.cio.timeout(5000).emit('data', zip, data.zip, (err, response) => {
                 console.log(err, response)
                 console.log(response === data.size)
             })
