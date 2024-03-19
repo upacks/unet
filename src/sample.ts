@@ -9,53 +9,29 @@ import { Proxy, Core } from './proxy'
 import { ReplicaMaster } from './replication2/master'
 import { ReplicaSlave } from './replication2/slave'
 import { state, chunk } from './replication2/test'
+import { zip, unzip } from './replication2/common'
 
 const REPLICA = () => {
 
     const zip = true
-    const payload = chunk
+    const payload = state ?? chunk
 
     Safe(() => {
 
         const api = new Host({ name: 'event', port: 4040, redis: false })
-        const MR = new ReplicaMaster({ api })
-
-        api.io.on('connection', (socket) => {
-
-            socket.on('error', console.log)
-
-            socket.on('data', (zip, data, callback) => {
-
-                console.log(` - SERVER - `)
-
-                if (typeof payload === 'string') console.log(MR.unzip(data) === payload)
-                else console.log(Sfy(MR.unzip(data)) === Sfy(payload))
-
-                callback(`${data.length}b`)
-
-            })
-
-        })
+        new ReplicaMaster({ api, sequel: {} })
 
     })
 
     Safe(() => {
 
         const api = new Connection({ name: 'event', proxy: 'http://localhost:4040' })
-        const SR = new ReplicaSlave({ api })
-
-        Loop(() => {
-
-            console.log('')
-            console.log(` - CLIENT - `)
-            const data = SR.zip(payload)
-
-            api.cio.timeout(5000).emit('data', zip, data.zip, (err, response) => {
-                console.log(err, response)
-                console.log(response === data.size)
-            })
-
-        }, 2500)
+        new ReplicaSlave({
+            api,
+            sequel: {},
+            models: ['events', 'chunks'],
+            slave_name: 'SV102'
+        })
 
     })
 
