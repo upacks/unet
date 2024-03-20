@@ -1,4 +1,4 @@
-import { Now, Loop, AsyncWait, Safe, moment, dateFormat, log } from 'utils'
+import { Loop, AsyncWait, Safe, moment, dateFormat, log } from 'utils'
 import { zip, unzip } from './common'
 import { Connection } from '../connection'
 import { Op } from '../util'
