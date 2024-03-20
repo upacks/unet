@@ -22,7 +22,7 @@ export class rMaster {
 
     constructor(args: iRM) {
 
-        log.warn(`[R] Replication on Master [...]`)
+        log.warn(`[M] Replication on Master [...]`)
 
         this._ = {
             ...args
@@ -67,15 +67,15 @@ export class rMaster {
             // Cleaning the payload of deleted items
             for (const x of items) if (x.deletedAt !== null) x.data = null
 
-            console.log(`[M] Get_items ${key} ${table_name}.${slave_name} [${id},${updatedAt},${size}]`)
-            console.log(`[R] Get_items found [${items?.length}] item(s)`)
+            console.log(`[M] Get_items:  ${key} ${table_name}.${slave_name} [${id},${updatedAt},${size}]`)
+            console.log(`[M] Get_items:  Found [${items?.length}] item(s)`)
 
             // callback(zip({ status: true, items }))
             callback(zip(items))
 
         } catch (err) {
 
-            console.log(`[M] Get_items ${err.message}`)
+            console.log(`[M] Get_items:  ${err.message}`)
             // callback(zip({ status: false, message: err.message }))
             callback(null)
 
@@ -104,15 +104,15 @@ export class rMaster {
                 updatedAt: item?.updatedAt ?? '',
             }
 
-            console.log(`[M] Get_last ${key} ${table_name}.${slave_name}`)
-            console.log(`[R] Get_items found [${last.id},${last.updatedAt}]`)
+            console.log(`[M] Get_last:   ${key} ${table_name}.${slave_name}`)
+            console.log(`[M] Get_last:   Found [${last.id},${last.updatedAt}]`)
 
             // callback(zip({ status: true, last }))
             callback(zip(last))
 
         } catch (err) {
 
-            console.log(`[M] Get_last ${err.message}`)
+            console.log(`[M] Get_last:   ${err.message}`)
             // callback(zip({ status: false, message: err.message }))
             callback(null)
 
@@ -134,13 +134,13 @@ export class rMaster {
 
             for (const x of items) await model.upsert(x)
 
-            console.log(`[M] ${key} Send_items saved`)
+            console.log(`[M] Send_items: Saved`)
             // callback(zip({ status: true }))
             callback(zip({ status: true }))
 
         } catch (err) {
 
-            console.log(`[M] Send_items ${err.message}`)
+            console.log(`[M] Send_items: ${err.message}`)
             // callback(zip({ status: false, message: err.message }))
             callback(null)
 

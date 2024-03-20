@@ -34,7 +34,7 @@ export class rSlave {
 
     constructor(args: iRS) {
 
-        log.warn(`[ReplicaSlave] Initializing`)
+        log.warn(`[R] Replication on Slave [...]`)
 
         this._ = {
             api: null,
@@ -185,9 +185,8 @@ export class rSlave {
 
                     /** INITIATE **/
 
-                    logs.push(`[R] Starting with index [${index}]`)
-
-                    logs.push(`[R] Found name of model [${name}]`)
+                    logs.push(`[R] Start:      Index [${index}]`)
+                    logs.push(`[R] Start:      Model [${name}]`)
                     const model = this._.sequel.models[name]
 
                     const arg: any = { key, index, model, table_name: name, master_name: 'master', slave_name: this._.slave_name, retain, size }
@@ -195,26 +194,26 @@ export class rSlave {
 
                     /** METHOD: PULL **/ if (direction === 'bidirectional' || direction === 'pull-only') {
 
-                        logs.push(`[R] Get_last from Local [...]`)
+                        logs.push(`[R] Get_last:   From Local [...]`)
                         tmp.pull_last = await this.pull.get_last(arg, tmp)
 
-                        logs.push(`[R] Get_items from Cloud [...]`)
+                        logs.push(`[R] Get_items:  From Cloud [...]`)
                         tmp.pull_items = await this.pull.get_items(arg, tmp)
 
-                        logs.push(`[R] Save_items to Local [...]`)
+                        logs.push(`[R] Save_items: To Local [...]`)
                         tmp.pull_saved = await this.pull.save_items(arg, tmp)
 
                     }
 
                     /** METHOD: PUSH **/ if (direction === 'bidirectional' || direction === 'push-only') {
 
-                        logs.push(`[R] Get_last from Cloud [...]`)
+                        logs.push(`[R] Get_last:   From Cloud [...]`)
                         tmp.push_last = await this.push.get_last(arg, tmp)
 
-                        logs.push(`[R] Get_items from Local[...]`)
+                        logs.push(`[R] Get_items:  From Local[...]`)
                         tmp.push_items = await this.push.get_items(arg, tmp)
 
-                        logs.push(`[R] Send_items to Cloud [...]`)
+                        logs.push(`[R] Send_items: To Cloud [...]`)
                         tmp.push_sent = await this.push.send_items(arg, tmp)
 
                     }
@@ -224,31 +223,30 @@ export class rSlave {
                     if (tmp.pull_items?.length === size) {
 
                         skip[index] = 0
-                        logs.push(`[R] Sleep for next ${skip[index]} loop(s) / There are items to Pull`)
+                        logs.push(`[R] Sleep:      Next ${skip[index]} loop(s) / There are items to Pull`)
 
                     }
 
                     else if (tmp.push_items?.length === size) {
 
                         skip[index] = 0
-                        logs.push(`[R] Sleep for next ${skip[index]} loop(s) / There are items to Push`)
+                        logs.push(`[R] Sleep:      Next ${skip[index]} loop(s) / There are items to Push`)
 
                     }
 
                     else {
 
                         skip[index] = Math.ceil(delay_success / delay_loop)
-                        logs.push(`[R] Sleep for next ${skip[index]} loop(s) / No items to Pull or Push`)
+                        logs.push(`[R] Sleep:      Next ${skip[index]} loop(s) / No items to Pull or Push`)
 
                     }
-
 
                 }
 
             } catch (err) {
 
                 skip[index] = Math.ceil(delay_fail / delay_loop)
-                logs.push(`[R] Sleep for next ${skip[index]} loop(s) / due to ${err.message}`)
+                logs.push(`[R] Sleep:      Next ${skip[index]} loop(s) / due to ${err.message}`)
 
             } finally {
 
