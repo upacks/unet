@@ -1,31 +1,61 @@
-import { Now, Loop, AsyncWait, Safe, log } from 'utils'
+import { Now, Loop, AsyncWait, Safe, moment, dateFormat, log } from 'utils'
 import { zip, unzip } from './common'
 import { Connection } from '../connection'
 import { Op } from '../util'
 
 type tDirection = 'bidirectional' | 'pull-only' | 'push-only'
 
+type tModelConfig = {
+    name: string
+    direction?: tDirection
+    size?: number
+    retain?: [number | any, string | any] /** [5,'days'] -> Last 5 days of data will be replicated */,
+    delay_success?: number
+    delay_fail?: number
+    delay_loop?: number
+    log?: boolean
+}
+
 interface iRS {
 
     api: Connection
     sequel: any
-    models: string[]
     slave_name: string
-    direction?: tDirection
-    log?: boolean
-    size?: number
     msgpackr?: boolean
+    models: tModelConfig[]
 
 }
 
-export class ReplicaSlave {
+export class rSlave {
 
     _: iRS
+    cb = null
 
     constructor(args: iRS) {
 
         log.warn(`[ReplicaSlave] Initializing`)
-        this._ = { size: 5, ...args }
+
+        this._ = {
+            api: null,
+            sequel: null,
+            slave_name: '',
+            msgpackr: true,
+            ...args,
+        }
+
+        this._.models.map((conf) => {
+            conf = {
+                direction: 'bidirectional',
+                size: 5, /** The size basically equals to a kb(s) **/
+                retain: [90, 'days'],
+                delay_success: 7500,
+                delay_fail: 5000,
+                delay_loop: 500,
+                log: true,
+                ...conf
+            }
+        })
+
         this.replicate()
 
     }
@@ -33,40 +63,42 @@ export class ReplicaSlave {
     pull = /** PULL METHOD */ {
 
         /** from Local */
-        get_last: async ({ model, slave_name }, { }) => {
+        get_last: async ({ model, slave_name, retain }, { }) => {
 
-            const { id, updatedAt } = await model.findOne({
+            const item = await model.findOne({
                 where: { src: { [Op.not]: slave_name } },
                 order: [['updatedAt', 'DESC'], ['id', 'DESC']],
                 raw: true
             })
 
             return {
-                id: id ?? null,
-                updatedAt: updatedAt ?? null,
+                id: item?.id ?? '',
+                updatedAt: item?.updatedAt ?? moment().add(-(retain[0]), retain[1]).format(dateFormat),
             }
 
         },
 
-        /** from Cloud -> Save */
-        get_items: ({ key }, { pull_last }) => new Promise((res, rej) => {
+        /** from Cloud */
+        get_items: ({ key, table_name, slave_name, size }, { pull_last }) => new Promise((res, rej) => {
 
-            this._.api.cio.timeout(10 * 1000).emit('get_items', key, zip(pull_last), (err, response) => {
+            this._.api.cio.timeout(10 * 1000)
+                .emit('get_items', zip({ key, table_name, slave_name, last: pull_last, size: size }), (err, response) => {
 
-                try {
+                    try {
 
-                    if (err) rej(err.message)
-                    else res(unzip(response))
+                        if (err) rej(err.message)
+                        else res(unzip(response))
 
-                } catch (err) { rej(err.message) }
+                    } catch (err) { rej(err.message) }
 
-            })
+                })
 
         }),
 
-        /** to Local */
-        save_items: async ({ model }, { pull_items }) => {
+        /** to Local (save) */
+        save_items: async ({ model, table_name, slave_name }, { pull_items }) => {
 
+            this.cb && this.cb(table_name, slave_name)
             for (const x of pull_items) await model.upsert(x)
             return 'Done'
 
@@ -79,7 +111,7 @@ export class ReplicaSlave {
         /** from Cloud */
         get_last: ({ key, table_name, slave_name }, { }) => new Promise((res, rej) => {
 
-            this._.api.cio.timeout(10 * 1000).emit('get_last', key, zip({ table_name, slave_name }), (err, response) => {
+            this._.api.cio.timeout(10 * 1000).emit('get_last', zip({ key, table_name, slave_name }), (err, response) => {
 
                 try {
 
@@ -92,8 +124,8 @@ export class ReplicaSlave {
 
         }),
 
-        /** from Local -> Send */
-        get_items: async ({ model, master_name, slave_name }, { push_last }) => {
+        /** from Local */
+        get_items: async ({ model, master_name, slave_name, size }, { push_last }) => {
 
             const { id, updatedAt } = push_last
 
@@ -103,17 +135,17 @@ export class ReplicaSlave {
                     dst: master_name,
                     [Op.or]: [{ updatedAt: { [Op.gt]: updatedAt } }, { id: { [Op.gt]: id }, updatedAt: { [Op.eq]: updatedAt } }]
                 },
-                limit: this._.size,
+                limit: size,
                 order: [['updatedAt', 'ASC'], ['id', 'ASC']],
                 raw: true,
             })
 
         },
 
-        /** to Cloud */
-        send_items: ({ key }, { push_items }) => new Promise((res, rej) => {
+        /** to Cloud (send) */
+        send_items: ({ key, table_name, slave_name }, { push_items }) => new Promise((res, rej) => {
 
-            this._.api.cio.timeout(10 * 1000).emit('send_items', key, zip(push_items), (err, response) => {
+            this._.api.cio.timeout(10 * 1000).emit('send_items', zip({ key, table_name, slave_name, items: push_items }), (err, response) => {
 
                 try {
 
@@ -140,8 +172,9 @@ export class ReplicaSlave {
 
         Loop(() => free && Safe(async () => {
 
-            const key = Now()
             free = false
+            const key = Date.now()
+            const { name, direction, retain, size, delay_success, delay_fail, delay_loop } = this._.models[index]
 
             try {
 
@@ -150,15 +183,14 @@ export class ReplicaSlave {
                     /** INITIATE **/
 
                     logs.push(`[R] Starting with index [${index}]`)
-                    const table_name = this._.models[index]
 
-                    logs.push(`[R] Found name of model [${table_name}]`)
-                    const model = this._.sequel.models[table_name]
+                    logs.push(`[R] Found name of model [${name}]`)
+                    const model = this._.sequel.models[name]
 
+                    const arg: any = { key, index, model, table_name: name, master_name: 'master', slave_name: this._.slave_name, retain, size }
                     const tmp: any = { start: Date.now() }
-                    const arg: any = { key, index, model, table_name, master_name: 'master', slave_name: this._.slave_name }
 
-                    /** METHOD: PULL **/ if (this._.direction === 'bidirectional' || this._.direction === 'pull-only') {
+                    /** METHOD: PULL **/ if (direction === 'bidirectional' || direction === 'pull-only') {
 
                         logs.push(`[R] Get_last from Local [...]`)
                         tmp.pull_last = await this.pull.get_last(arg, tmp)
@@ -171,7 +203,7 @@ export class ReplicaSlave {
 
                     }
 
-                    /** METHOD: PUSH **/ if (this._.direction === 'bidirectional' || this._.direction === 'push-only') {
+                    /** METHOD: PUSH **/ if (direction === 'bidirectional' || direction === 'push-only') {
 
                         logs.push(`[R] Get_last from Cloud [...]`)
                         tmp.push_last = await this.push.get_last(arg, tmp)
@@ -185,15 +217,35 @@ export class ReplicaSlave {
                     }
 
                     /** When there are items to be pushed or pulled */
-                    logs.push(`[R] Sleep for ${14 / 2}s duel to [...]`)
-                    skip[index] = 14
+
+                    if (tmp.pull_items?.length === size) {
+
+                        skip[index] = 0
+                        logs.push(`[R] Sleep for next ${skip[index]} loop(s) / There are items to Pull`)
+
+                    }
+
+                    else if (tmp.push_items?.length === size) {
+
+                        skip[index] = 0
+                        logs.push(`[R] Sleep for next ${skip[index]} loop(s) / There are items to Push`)
+
+                    }
+
+                    else {
+
+                        skip[index] = Math.ceil(delay_success / delay_loop)
+                        logs.push(`[R] Sleep for next ${skip[index]} loop(s) / No items to Pull or Push`)
+
+                    }
+
 
                 }
 
             } catch (err) {
 
-                skip[index] = 5
-                logs.push(`[R] Sleep for ${5 / 2}s due to ${err.message}`)
+                skip[index] = Math.ceil(delay_fail / delay_loop)
+                logs.push(`[R] Sleep for next ${skip[index]} loop(s) / due to ${err.message}`)
 
             } finally {
 
@@ -203,7 +255,7 @@ export class ReplicaSlave {
                     logs = []
                 }
 
-                await AsyncWait(500)
+                await AsyncWait(delay_loop)
                 index = (index + 1) >= length ? 0 : (index + 1)
                 free = true
 
@@ -212,5 +264,7 @@ export class ReplicaSlave {
         }), 10)
 
     }
+
+    on_update = (cb) => this.cb = cb
 
 }

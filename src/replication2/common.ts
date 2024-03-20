@@ -2,7 +2,7 @@ import { pack, unpack } from 'msgpackr'
 import { zlibSync, unzlibSync } from 'fflate'
 import { log, Sfy } from 'utils'
 
-export const zip = (data) => {
+export const zip = (data, silent = true) => {
 
     try {
 
@@ -10,10 +10,10 @@ export const zip = (data) => {
         const bin = pack(data)
         const zip = zlibSync(bin, { level: 9 })
 
-        log.info(`String(size): ${typeof data} ` + actualSize)
-        log.info(`Pack(size): ${bin.constructor.name} ` + bin.length)
-        log.info(`Zip(size): ${zip.constructor.name} ` + zip.length)
-        log.info(`Reduced: ${(100 - ((zip.length * 100) / actualSize)).toFixed(1)}%`)
+        !silent && log.info(`String(size): ${typeof data} ` + actualSize)
+        !silent && log.info(`Pack(size): ${bin.constructor.name} ` + bin.length)
+        !silent && log.info(`Zip(size): ${zip.constructor.name} ` + zip.length)
+        !silent && log.info(`Reduced: ${(100 - ((zip.length * 100) / actualSize)).toFixed(1)}%`)
 
         return zip
 

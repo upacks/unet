@@ -10,4 +10,7 @@ export { NetServer, NetClient } from './tcp'
 export { ReplicaMaster } from './replication/master'
 export { ReplicaSlave } from './replication/slave'
 
+export { rMaster } from './replication2/master'
+export { rSlave } from './replication2/slave'
+
 require.main === module && require('./sample')

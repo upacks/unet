@@ -1,43 +1,102 @@
 /** TCP-Samples **/
 
-import { Shell, Safe, Delay, Loop, Sfy, log } from 'utils'
+import { Shell, Safe, Delay, Loop, Sfy, Now, Uid, env, log } from 'utils'
 
 import { NetClient, NetServer } from './tcp'
 import { Host } from './host'
 import { Connection } from './connection'
 import { Proxy, Core } from './proxy'
-import { ReplicaMaster } from './replication2/master'
-import { ReplicaSlave } from './replication2/slave'
+
+require('dotenv').config()
+import { Sequelize, DataTypes, Model, ModelStatic } from 'sequelize'
+import { rMaster } from './replication2/master'
+import { rSlave } from './replication2/slave'
 import { state, chunk } from './replication2/test'
-import { zip, unzip } from './replication2/common'
 
-const REPLICA = () => {
+const REPLICA = async () => {
 
-    const zip = true
     const payload = state ?? chunk
 
-    Safe(() => {
-
-        const api = new Host({ name: 'event', port: 4040, redis: false })
-        new ReplicaMaster({ api, sequel: {} })
-
+    const sequel = new Sequelize(env.DB_NAME, env.DB_USER, env.DB_PASS, {
+        host: env.DB_HOST,
+        dialect: 'postgres',
+        pool: { max: 16, min: 4, acquire: 30000, idle: 15000 },
+        logging: (sql, timing: any) => { },
     })
 
+    await sequel.authenticate()
+
+    const m = sequel.define('rep_master', {
+
+        id: { primaryKey: true, type: DataTypes.STRING, defaultValue: () => Uid() },
+        proj: { type: DataTypes.STRING, defaultValue: '' },
+        type: { type: DataTypes.STRING, defaultValue: '' },
+        name: { type: DataTypes.STRING, defaultValue: '' },
+        data: { type: DataTypes.TEXT, defaultValue: '' },
+        src: { type: DataTypes.STRING, defaultValue: 'master' },
+        dst: { type: DataTypes.STRING, defaultValue: '' },
+        createdAt: { type: DataTypes.STRING, defaultValue: () => Now() },
+        updatedAt: { type: DataTypes.STRING, defaultValue: () => Now() },
+        deletedAt: { type: DataTypes.STRING, defaultValue: null },
+
+    }, { indexes: [{ unique: false, fields: ['type', 'src', 'dst', 'updatedAt'] }] })
+
+    const s = sequel.define('rep_slave', {
+
+        id: { primaryKey: true, type: DataTypes.STRING, defaultValue: () => Uid() },
+        proj: { type: DataTypes.STRING, defaultValue: '' },
+        type: { type: DataTypes.STRING, defaultValue: '' },
+        name: { type: DataTypes.STRING, defaultValue: '' },
+        data: { type: DataTypes.TEXT, defaultValue: '' },
+        src: { type: DataTypes.STRING, defaultValue: 'SV102' },
+        dst: { type: DataTypes.STRING, defaultValue: '' },
+        createdAt: { type: DataTypes.STRING, defaultValue: () => Now() },
+        updatedAt: { type: DataTypes.STRING, defaultValue: () => Now() },
+        deletedAt: { type: DataTypes.STRING, defaultValue: null },
+
+    }, { indexes: [{ unique: false, fields: ['type', 'src', 'dst', 'updatedAt'] }] })
+
+    await sequel.sync({ force: true })
+
+    Loop(async () => {
+
+        await m.upsert({ proj: 'OT', type: 'state', name: 'S300', data: `OMG_THIS_IS_IT_${Date.now()}`, src: 'master', dst: 'SV102' })
+        await m.upsert({ proj: 'KT', type: 'state', name: 'S300', data: `OMG_THIS_IS_IT_${Date.now()}`, src: 'master', dst: 'all' })
+        await m.upsert({ proj: 'BT', type: 'state', name: 'S300', data: `OMG_THIS_IS_IT_${Date.now()}`, src: 'master', dst: 'DR102' })
+        await s.upsert({ proj: 'OT', type: 'state', name: 'S100', data: `OMG_THIS_IS_IT_${Date.now()}`, src: 'SV102', dst: 'master' })
+
+    }, 1000 * 10)
+
     Safe(() => {
 
-        const api = new Connection({ name: 'event', proxy: 'http://localhost:4040' })
-        new ReplicaSlave({
-            api,
-            sequel: {},
-            models: ['events', 'chunks'],
-            slave_name: 'SV102'
+        const apim = new Host({ name: 'event', port: 4040, redis: false })
+        const apis = new Connection({ name: 'event', proxy: 'http://localhost:4040' })
+
+        new rMaster({
+            api: apim,
+            sequel,
+        })
+
+        new rSlave({
+            api: apis,
+            sequel: sequel,
+            slave_name: 'SV102',
+            models: [{
+                name: 'rep_slave',
+                direction: 'bidirectional',
+                size: 5,
+                retain: [7, 'days'],
+                delay_success: 7500,
+                delay_fail: 5000,
+                delay_loop: 500,
+            }],
         })
 
     })
 
 }
 
-REPLICA()
+// REPLICA()
 
 const HOST_AND_CONNECTION = () => {
 
