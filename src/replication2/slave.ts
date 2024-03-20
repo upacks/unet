@@ -22,6 +22,7 @@ interface iRS {
     sequel: any
     slave_name: string
     msgpackr?: boolean
+    parallel?: boolean
     models: tModelConfig[]
 
 }
@@ -40,6 +41,7 @@ export class rSlave {
             sequel: null,
             slave_name: '',
             msgpackr: true,
+            parallel: false,
             ...args,
         }
 
@@ -56,7 +58,8 @@ export class rSlave {
             }
         })
 
-        this.replicate()
+        if (this._.parallel) this._.models.map((conf) => this.replicate([conf]))
+        else this.replicate(this._.models)
 
     }
 
@@ -160,10 +163,10 @@ export class rSlave {
 
     }
 
-    replicate = () => {
+    replicate = (ls = []) => {
 
         let free = true
-        let length = this._.models.length
+        let length = ls.length
         let index = 0
         let logs: any = []
         let skip = []
@@ -174,7 +177,7 @@ export class rSlave {
 
             free = false
             const key = Date.now()
-            const { name, direction, retain, size, delay_success, delay_fail, delay_loop } = this._.models[index]
+            const { name, direction, retain, size, delay_success, delay_fail, delay_loop } = ls[index]
 
             try {
 

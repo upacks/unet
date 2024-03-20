@@ -13,7 +13,7 @@ interface iRM {
 
 }
 
-const demo = false
+const demo = true
 
 export class rMaster {
 

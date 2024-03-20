@@ -96,7 +96,7 @@ const REPLICA = async () => {
 
 }
 
-// REPLICA()
+REPLICA()
 
 const HOST_AND_CONNECTION = () => {
 
