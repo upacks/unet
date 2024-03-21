@@ -185,8 +185,7 @@ export class rSlave {
 
                     /** INITIATE **/
 
-                    logs.push(`[R] Start:      Index [${index}]`)
-                    logs.push(`[R] Start:      Model [${name}]`)
+                    logs.push(`[R] Start:      [${index}|${key}|${name}]`)
                     const model = this._.sequel.models[name]
 
                     const arg: any = { key, index, model, table_name: name, master_name: 'master', slave_name: this._.slave_name, retain, size }
@@ -200,7 +199,7 @@ export class rSlave {
                         logs.push(`[R] Get_items:  From Cloud [...]`)
                         tmp.pull_items = await this.pull.get_items(arg, tmp)
 
-                        logs.push(`[R] Save_items: To Local [...]`)
+                        logs.push(`[R] Save_items: To Local [${Array.isArray(tmp.pull_items) ? tmp.pull_items.length : '-'}]`)
                         tmp.pull_saved = await this.pull.save_items(arg, tmp)
 
                     }
@@ -251,7 +250,7 @@ export class rSlave {
             } finally {
 
                 if (logs.length) {
-                    console.log(`\n[R] ${key}`)
+                    console.log(`\n`)
                     for (const x of logs) console.log(x)
                     logs = []
                 }

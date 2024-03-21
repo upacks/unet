@@ -67,7 +67,7 @@ export class rMaster {
             // Cleaning the payload of deleted items
             for (const x of items) if (x.deletedAt !== null) x.data = null
 
-            console.log(`[M] Get_items:  ${key} ${table_name}.${slave_name} [${id},${updatedAt},${size}]`)
+            console.log(`[M] Get_items:  [${key}|${table_name}|${slave_name}] [${id},${updatedAt},${size}]`)
             console.log(`[M] Get_items:  Found [${items?.length}] item(s)`)
 
             // callback(zip({ status: true, items }))
@@ -104,7 +104,7 @@ export class rMaster {
                 updatedAt: item?.updatedAt ?? '',
             }
 
-            console.log(`[M] Get_last:   ${key} ${table_name}.${slave_name}`)
+            console.log(`[M] Get_last:   [${key}|${table_name}|${slave_name}]`)
             console.log(`[M] Get_last:   Found [${last.id},${last.updatedAt}]`)
 
             // callback(zip({ status: true, last }))
@@ -134,7 +134,7 @@ export class rMaster {
 
             for (const x of items) await model.upsert(x)
 
-            console.log(`[M] Send_items: Saved`)
+            console.log(`[M] Send_items: Saved [${items.length}]`)
             // callback(zip({ status: true }))
             callback(zip({ status: true }))
 

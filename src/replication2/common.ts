@@ -13,7 +13,8 @@ export const zip = (data, silent = true) => {
         !silent && log.info(`String(size): ${typeof data} ` + actualSize)
         !silent && log.info(`Pack(size): ${bin.constructor.name} ` + bin.length)
         !silent && log.info(`Zip(size): ${zip.constructor.name} ` + zip.length)
-        !silent && log.info(`Reduced: ${(100 - ((zip.length * 100) / actualSize)).toFixed(1)}%`)
+
+        console.log(`[#] Pack:       [${actualSize} -> ${zip.length}] ${(100 - ((zip.length * 100) / actualSize)).toFixed(1)}% eco`)
 
         return zip
 
@@ -28,6 +29,10 @@ export const unzip = (zip) => {
 
         const bin = unzlibSync(zip)
         const data = unpack(bin)
+        const actualSize = typeof data === 'object' ? Sfy(data).length : data.length
+
+        console.log(`[#] Unpack:     [${zip.length} -> ${actualSize}] ${(100 - ((zip.length * 100) / actualSize)).toFixed(1)}% eco`)
+
         return data
 
     } catch (err) { throw new Error(`UNZIP: ${err.message}`) }
