@@ -24,6 +24,7 @@ interface iRS {
     msgpackr?: boolean
     parallel?: boolean
     models: tModelConfig[]
+    debug?: boolean
 
 }
 
@@ -42,6 +43,7 @@ export class rSlave {
             slave_name: '',
             msgpackr: true,
             parallel: false,
+            debug: false,
             ...args,
         }
 
@@ -195,12 +197,15 @@ export class rSlave {
 
                         logs.push(`[R] Get_last:   From Local [...]`)
                         tmp.pull_last = await this.pull.get_last(arg, tmp)
+                        this._.debug && logs.push(tmp.pull_last)
 
                         logs.push(`[R] Get_items:  From Cloud [...]`)
                         tmp.pull_items = await this.pull.get_items(arg, tmp)
+                        this._.debug && logs.push(tmp.pull_items)
 
                         logs.push(`[R] Save_items: To Local [${Array.isArray(tmp.pull_items) ? tmp.pull_items.length : '-'}]`)
                         tmp.pull_saved = await this.pull.save_items(arg, tmp)
+                        this._.debug && logs.push(tmp.pull_saved)
 
                     }
 
@@ -208,12 +213,15 @@ export class rSlave {
 
                         logs.push(`[R] Get_last:   From Cloud [...]`)
                         tmp.push_last = await this.push.get_last(arg, tmp)
+                        this._.debug && logs.push(tmp.push_last)
 
                         logs.push(`[R] Get_items:  From Local[...]`)
                         tmp.push_items = await this.push.get_items(arg, tmp)
+                        this._.debug && logs.push(tmp.push_items)
 
                         logs.push(`[R] Send_items: To Cloud [...]`)
                         tmp.push_sent = await this.push.send_items(arg, tmp)
+                        this._.debug && logs.push(tmp.push_sent)
 
                     }
 
