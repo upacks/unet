@@ -68,7 +68,7 @@ export class rSlave {
     pull = /** PULL METHOD */ {
 
         /** from Local */
-        get_last: async ({ model, slave_name, retain }, { }) => {
+        get_last: async ({ model, slave_name, retain, logs }, { }) => {
 
             const item = await model.findOne({
                 where: { src: { [Op.not]: slave_name } },
@@ -84,17 +84,22 @@ export class rSlave {
         },
 
         /** from Cloud */
-        get_items: ({ key, table_name, slave_name, size }, { pull_last }) => new Promise((res, rej) => {
+        get_items: ({ key, table_name, slave_name, size, logs }, { pull_last }) => new Promise((res, rej) => {
 
             this._.api.cio.timeout(10 * 1000)
                 .emit('get_items', zip({ key, table_name, slave_name, last: pull_last, size: size }), (err, response) => {
 
                     try {
 
-                        if (response.status === true) res(unzip(response).data)
-                        else if (err) rej(err.message)
-                        else if (response.status === false) rej(unzip(response).message)
-                        else rej('Unknown error')
+                        this._.debug && logs.push({ name: 'get_items', err, response })
+
+                        if (err) { rej(err.message) } else {
+
+                            const { status, data, message } = unzip(response)
+                            if (status === true) res(data)
+                            else rej(message ?? 'Unknown error from Cloud')
+
+                        }
 
                     } catch (err) { rej(err.message) }
 
@@ -116,16 +121,21 @@ export class rSlave {
     push = /** PUSH METHOD */ {
 
         /** from Cloud */
-        get_last: ({ key, table_name, slave_name }, { }) => new Promise((res, rej) => {
+        get_last: ({ key, table_name, slave_name, logs }, { }) => new Promise((res, rej) => {
 
             this._.api.cio.timeout(10 * 1000).emit('get_last', zip({ key, table_name, slave_name }), (err, response) => {
 
                 try {
 
-                    if (response.status === true) res(unzip(response).data)
-                    else if (err) rej(err.message)
-                    else if (response.status === false) rej(unzip(response).message)
-                    else rej('Unknown error')
+                    this._.debug && logs.push({ name: 'get_last', err, response })
+
+                    if (err) { rej(err.message) } else {
+
+                        const { status, data, message } = unzip(response)
+                        if (status === true) res(data)
+                        else rej(message ?? 'Unknown error from Cloud')
+
+                    }
 
                 } catch (err) { rej(err.message) }
 
@@ -152,16 +162,21 @@ export class rSlave {
         },
 
         /** to Cloud (send) */
-        send_items: ({ key, table_name, slave_name }, { push_items }) => new Promise((res, rej) => {
+        send_items: ({ key, table_name, slave_name, logs }, { push_items }) => new Promise((res, rej) => {
 
             this._.api.cio.timeout(10 * 1000).emit('send_items', zip({ key, table_name, slave_name, items: push_items }), (err, response) => {
 
                 try {
 
-                    if (response.status === true) res(unzip(response).data)
-                    else if (err) rej(err.message)
-                    else if (response.status === false) rej(unzip(response).message)
-                    else rej('Unknown error')
+                    this._.debug && logs.push({ name: 'send_items', err, response })
+
+                    if (err) { rej(err.message) } else {
+
+                        const { status, data, message } = unzip(response)
+                        if (status === true) res(data)
+                        else rej(message ?? 'Unknown error from Cloud')
+
+                    }
 
                 } catch (err) { rej(err.message) }
 
@@ -196,7 +211,7 @@ export class rSlave {
                     logs.push(`[R] Start:      [${index}|${key}|${name}]`)
                     const model = this._.sequel.models[name]
 
-                    const arg: any = { key, index, model, table_name: name, master_name: 'master', slave_name: this._.slave_name, retain, size }
+                    const arg: any = { key, index, model, table_name: name, master_name: 'master', slave_name: this._.slave_name, retain, size, logs }
                     const tmp: any = { start: Date.now() }
 
                     /** METHOD: PULL **/ if (direction === 'bidirectional' || direction === 'pull-only') {
