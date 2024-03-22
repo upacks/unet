@@ -69,15 +69,12 @@ export class rMaster {
 
             console.log(`[M] Get_items:  [${key}|${table_name}|${slave_name}] [${id},${updatedAt},${size}]`)
             console.log(`[M] Get_items:  Found [${items?.length}] item(s)`)
-
-            // callback(zip({ status: true, items }))
-            callback(zip(items))
+            callback(zip({ status: true, data: items }))
 
         } catch (err) {
 
             console.log(`[M] Get_items:  ${err.message}`)
-            // callback(zip({ status: false, message: err.message }))
-            callback(null)
+            callback(zip({ status: false, message: err.message }))
 
         }
 
@@ -106,15 +103,12 @@ export class rMaster {
 
             console.log(`[M] Get_last:   [${key}|${table_name}|${slave_name}]`)
             console.log(`[M] Get_last:   Found [${last.id},${last.updatedAt}]`)
-
-            // callback(zip({ status: true, last }))
-            callback(zip(last))
+            callback(zip({ status: true, data: last }))
 
         } catch (err) {
 
             console.log(`[M] Get_last:   ${err.message}`)
-            // callback(zip({ status: false, message: err.message }))
-            callback(null)
+            callback(zip({ status: false, message: err.message }))
 
         }
 
@@ -135,14 +129,12 @@ export class rMaster {
             for (const x of items) await model.upsert(x)
 
             console.log(`[M] Send_items: Saved [${items.length}]`)
-            // callback(zip({ status: true }))
-            callback(zip({ status: true }))
+            callback(zip({ status: true, data: items.length ?? 0 }))
 
         } catch (err) {
 
             console.log(`[M] Send_items: ${err.message}`)
-            // callback(zip({ status: false, message: err.message }))
-            callback(null)
+            callback(zip({ status: false, message: err.message }))
 
         }
 

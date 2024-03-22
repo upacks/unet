@@ -1,6 +1,6 @@
 import { pack, unpack } from 'msgpackr'
 import { zlibSync, unzlibSync } from 'fflate'
-import { log, Sfy } from 'utils'
+import { Sfy } from 'utils'
 
 export const zip = (data, logs = null) => {
 

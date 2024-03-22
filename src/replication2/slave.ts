@@ -91,8 +91,10 @@ export class rSlave {
 
                     try {
 
-                        if (err) rej(err.message)
-                        else res(unzip(response))
+                        if (response.status === true) res(unzip(response).data)
+                        else if (err) rej(err.message)
+                        else if (response.status === false) rej(unzip(response).message)
+                        else rej('Unknown error')
 
                     } catch (err) { rej(err.message) }
 
@@ -120,8 +122,10 @@ export class rSlave {
 
                 try {
 
-                    if (err) rej(err.message)
-                    else res(unzip(response))
+                    if (response.status === true) res(unzip(response).data)
+                    else if (err) rej(err.message)
+                    else if (response.status === false) rej(unzip(response).message)
+                    else rej('Unknown error')
 
                 } catch (err) { rej(err.message) }
 
@@ -154,8 +158,10 @@ export class rSlave {
 
                 try {
 
-                    if (err) rej(err.message)
-                    else res(unzip(response))
+                    if (response.status === true) res(unzip(response).data)
+                    else if (err) rej(err.message)
+                    else if (response.status === false) rej(unzip(response).message)
+                    else rej('Unknown error')
 
                 } catch (err) { rej(err.message) }
 
