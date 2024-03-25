@@ -273,8 +273,9 @@ export class rSlave {
 
             } catch (err) {
 
+                this._.debug && logs.push({ type: `Loop's catch`, err })
                 skip[index] = Math.ceil(delay_fail / delay_loop)
-                logs.push(`[R] Sleep:      Next ${skip[index]} loop(s) / due to ${err.message}`)
+                logs.push(`[R] Sleep:      Next ${skip[index]} loop(s) / due to ${typeof err === 'string' ? err : err.message ?? 'Unknown error'}`)
 
             } finally {
 
