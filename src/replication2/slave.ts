@@ -95,7 +95,7 @@ export class rSlave {
 
                         if (err) { rej(err.message) } else {
 
-                            const { status, data, message } = unzip(response)
+                            const { status, data, message } = unzip(response, logs)
                             if (status === true) res(data)
                             else rej(message ?? 'Unknown error from Cloud')
 
@@ -131,7 +131,7 @@ export class rSlave {
 
                     if (err) { rej(err.message) } else {
 
-                        const { status, data, message } = unzip(response)
+                        const { status, data, message } = unzip(response, logs)
                         if (status === true) res(data)
                         else rej(message ?? 'Unknown error from Cloud')
 
@@ -172,7 +172,7 @@ export class rSlave {
 
                     if (err) { rej(err.message) } else {
 
-                        const { status, data, message } = unzip(response)
+                        const { status, data, message } = unzip(response, logs)
                         if (status === true) res(data)
                         else rej(message ?? 'Unknown error from Cloud')
 
