@@ -164,7 +164,7 @@ export class rSlave {
         /** to Cloud (send) */
         send_items: ({ key, table_name, slave_name, logs }, { push_items }) => new Promise((res, rej) => {
 
-            this._.api.cio.timeout(10 * 1000).emit('send_items', zip({ key, table_name, slave_name, items: push_items }), (err, response) => {
+            this._.api.cio.timeout(10 * 1000).emit('send_items', zip({ key, table_name, slave_name, items: push_items }, logs), (err, response) => {
 
                 try {
 
@@ -279,7 +279,7 @@ export class rSlave {
             } finally {
 
                 if (logs.length) {
-                    console.log(`\n`)
+                    console.log(``)
                     for (const x of logs) console.log(x)
                     logs = []
                 }
