@@ -89,7 +89,7 @@ export class Connection {
             timeout: this.timeout,
             headers: {
                 'Accept': 'application/json',
-                'Accept-Encoding': 'gzip',
+                // 'Accept-Encoding': 'gzip', // Disabled due to warning -> Refused to set unsafe header "Accept-Encoding"
                 'Authorization': `Bearer ${this.token}`,
                 'whoami': whoami,
             },
