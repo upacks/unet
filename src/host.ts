@@ -146,7 +146,7 @@ export class Host {
 
                 if (this.requests.hasOwnProperty(req.path) && this.requests[req.path].hasOwnProperty('callback')) {
 
-                    const { callback, authorize } = this.requests[req.path]
+                    const { callback, authorize, level: required_level } = this.requests[req.path]
 
                     cb = callback
 
@@ -155,10 +155,21 @@ export class Host {
                         const user = authenticate(req)
 
                         if (user === null) {
+
                             res.status(401).send(`Unauthorized!`)
                             return null
+
+                        } else if ((user?.level ?? 0) >= required_level) {
+
+                            req.user = user
+
+                        } else {
+
+                            res.status(403).send(`Forbidden!`)
+                            return null
+
                         }
-                        req.user = user
+
 
                     }
 
@@ -244,10 +255,10 @@ export class Host {
 
     }
 
-    on = (channel: string, callback: (req: iUser & Request, res: Response) => void, authorize: boolean = false) => {
+    on = (channel: string, callback: (req: iUser & Request, res: Response) => void, authorize: boolean = false, level: number = 0) => {
 
         const y = (channel ?? '/')[0] === '/' || channel === '*'
-        this.requests[y ? channel : `/${channel}`] = { callback, authorize }
+        this.requests[y ? channel : `/${channel}`] = { callback, authorize, level }
 
     }
 
