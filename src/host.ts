@@ -176,9 +176,9 @@ export class Host {
 
                 } else { cb = this.requests['*'] ?? null }
 
-                if (cb) {
+                if (cb && cb.hasOwnProperty('callback')) {
 
-                    execute(cb, req, res, '')
+                    execute(cb.callback, req, res, '')
                         .then(e => res.send(e))
                         .catch(e => res.status(500).send(e.message))
 
