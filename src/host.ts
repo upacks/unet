@@ -146,9 +146,8 @@ export class Host {
 
                 if (this.requests.hasOwnProperty(req.path) && this.requests[req.path].hasOwnProperty('callback')) {
 
-                    const { callback, authorize, level: required_level } = this.requests[req.path]
-
-                    cb = callback
+                    cb = this.requests[req.path]
+                    const { authorize, level: required_level } = cb
 
                     if (authorize) {
 
