@@ -1,6 +1,6 @@
 {
   "name": "unet",
-  "version": "1.0.78",
+  "version": "1.0.79",
   "repository": "git@github.com:upacks/unet.git",
   "author": "gantulga.khuyag@gmail.com",
   "license": "MIT",
@@ -45,11 +45,5 @@
     "nodemon": "^2.0.15",
     "ts-node": "^10.4.0",
     "typescript": "^4.5.2"
-  },
-  "optionalDependencies": {
-    "dotenv": "^16.4.5",
-    "pg": "^8.11.3",
-    "pg-hstore": "^2.3.4",
-    "sequelize": "^6.28.0"
   }
 }

@@ -8,11 +8,12 @@ import { Connection } from './connection'
 import { Proxy, Core } from './proxy'
 
 require('dotenv').config()
-import { Sequelize, DataTypes, Model, ModelStatic } from 'sequelize'
+// import { Sequelize, DataTypes, Model, ModelStatic } from 'sequelize'
 import { rMaster } from './replication2/master'
 import { rSlave } from './replication2/slave'
 import { state, chunk } from './replication2/test'
 
+/* 
 const REPLICA = async () => {
 
     const payload = state ?? chunk
@@ -97,6 +98,7 @@ const REPLICA = async () => {
 }
 
 REPLICA()
+*/
 
 const HOST_AND_CONNECTION = () => {
 
