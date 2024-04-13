@@ -52,7 +52,9 @@ export class rMaster {
             const model = this._.sequel.models[table_name]
 
             const item = await model.findOne({
-                where: this.kv.hasOwnProperty(slave_name) ? { src: slave_name, updatedAt: { [Op.gte]: this.kv[slave_name].updatedAt } } : { src: slave_name },
+                where: this.kv.hasOwnProperty(slave_name) ?
+                    { src: slave_name, updatedAt: { [Op.gte]: this.kv[slave_name].updatedAt } } :
+                    { src: slave_name },
                 order: [['updatedAt', 'DESC'], ['id', 'DESC']],
                 raw: true
             })

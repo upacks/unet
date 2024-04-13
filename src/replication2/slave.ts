@@ -31,6 +31,7 @@ interface iRS {
 export class rSlave {
 
     _: iRS
+    kv: any = {}
     cb = null
 
     constructor(args: iRS) {
@@ -71,15 +72,17 @@ export class rSlave {
         get_last: async ({ model, slave_name, retain, logs }, { }) => {
 
             const item = await model.findOne({
-                where: { src: { [Op.not]: slave_name } },
+                where: this.kv.hasOwnProperty(slave_name) ?
+                    { src: { [Op.not]: slave_name }, updatedAt: { [Op.gte]: this.kv[slave_name].updatedAt } } :
+                    { src: { [Op.not]: slave_name } },
                 order: [['updatedAt', 'DESC'], ['id', 'DESC']],
                 raw: true
             })
 
-            return {
-                id: item?.id ?? '',
-                updatedAt: item?.updatedAt ?? moment().add(-(retain[0]), retain[1]).format(dateFormat),
-            }
+            const last = { id: item?.id ?? '', updatedAt: item?.updatedAt ?? moment().add(-(retain[0]), retain[1]).format(dateFormat) }
+            if (item?.id && item?.updatedAt) this.kv[slave_name] = last
+
+            return last
 
         },
 
@@ -150,12 +153,15 @@ export class rSlave {
 
             return model.findAll({
                 where: {
-                    src: slave_name,
-                    dst: master_name,
-                    [Op.or]: [{ updatedAt: { [Op.gt]: updatedAt } }, { id: { [Op.gt]: id }, updatedAt: { [Op.eq]: updatedAt } }]
+                    src: slave_name, dst: master_name,
+                    updatedAt: { [Op.gte]: updatedAt }, /** Just for using index **/
+                    [Op.or]: [
+                        { updatedAt: { [Op.gt]: updatedAt } },
+                        { id: { [Op.gt]: id }, updatedAt: { [Op.eq]: updatedAt } }
+                    ]
                 },
-                limit: size,
                 order: [['updatedAt', 'ASC'], ['id', 'ASC']],
+                limit: size,
                 raw: true,
             })
 
