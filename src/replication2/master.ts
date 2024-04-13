@@ -88,12 +88,10 @@ export class rMaster {
             const items = await model.findAll({
                 where: {
                     dst: { [Op.or]: ['all', slave_name] },
+                    updatedAt: { [Op.gte]: updatedAt }, /** Just for using index **/
                     [Op.or]: [
                         { updatedAt: { [Op.gt]: updatedAt } },
-                        {
-                            id: { [Op.gt]: id },
-                            updatedAt: { [Op.eq]: updatedAt },
-                        }
+                        { id: { [Op.gt]: id }, updatedAt: { [Op.eq]: updatedAt } }
                     ]
                 },
                 order: [['updatedAt', 'ASC'], ['id', 'ASC']],
