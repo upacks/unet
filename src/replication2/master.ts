@@ -57,19 +57,15 @@ export class rMaster {
                 raw: true
             })
 
-            const last = {
-                id: item?.id ?? '',
-                updatedAt: item?.updatedAt ?? '',
-            }
-
+            const last = { id: item?.id ?? '', updatedAt: item?.updatedAt ?? '' }
             if (item?.id && item?.updatedAt) this.kv[slave_name] = last
 
-            console.log(`[M] Get_last:   FROM ${slave_name} TO ${table_name} (${Date.now() - start}ms`)
+            console.log(`[M] Get_last:   FROM ${slave_name} TO ${table_name} ITEMS - (${Date.now() - start}ms)`)
             callback(zip({ status: true, data: last }))
 
         } catch (err) {
 
-            console.error(`[M] Get_last:   ${err.message}  (${Date.now() - start}ms`)
+            console.error(`[M] Get_last:   ${err.message}  (${Date.now() - start}ms)`)
             callback(zip({ status: false, message: err.message }))
 
         }
@@ -108,12 +104,12 @@ export class rMaster {
             // Cleaning the payload of deleted items
             for (const x of items) if (x.deletedAt !== null) x.data = null
 
-            console.log(`[M] Get_items:  FROM ${slave_name} TO ${table_name} ITEMS ${items?.length} (${Date.now() - start}ms`)
+            console.log(`[M] Get_items:  FROM ${slave_name} TO ${table_name} ITEMS ${items?.length} (${Date.now() - start}ms)`)
             callback(zip({ status: true, data: items }))
 
         } catch (err) {
 
-            console.error(`[M] Get_items:  ${err.message} (${Date.now() - start}ms`)
+            console.error(`[M] Get_items:  ${err.message} (${Date.now() - start}ms)`)
             callback(zip({ status: false, message: err.message }))
 
         }
@@ -136,12 +132,12 @@ export class rMaster {
 
             for (const x of items) await model.upsert(x)
 
-            console.log(`[M] Save_items: FROM ${slave_name} TO ${table_name} ITEMS ${items.length} (${Date.now() - start}ms`)
+            console.log(`[M] Save_items: FROM ${slave_name} TO ${table_name} ITEMS ${items.length} (${Date.now() - start}ms)`)
             callback(zip({ status: true, data: items.length ?? 0 }))
 
         } catch (err) {
 
-            console.error(`[M] Save_items: ${err.message} (${Date.now() - start}ms`)
+            console.error(`[M] Save_items: ${err.message} (${Date.now() - start}ms)`)
             callback(zip({ status: false, message: err.message }))
 
         }
