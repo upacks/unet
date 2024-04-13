@@ -1,4 +1,4 @@
-import { log, Sfy } from 'utils'
+import { log } from 'utils'
 import { zip, unzip } from './common'
 import { Host } from '../host'
 import { Op } from '../util'
@@ -18,6 +18,7 @@ const demo = false
 export class rMaster {
 
     _: iRM
+    kv: any = {}
     cb = null
 
     constructor(args: iRM) {
@@ -57,7 +58,8 @@ export class rMaster {
                         {
                             id: { [Op.gt]: id },
                             updatedAt: { [Op.eq]: updatedAt },
-                        }]
+                        }
+                    ]
                 },
                 order: [['updatedAt', 'ASC'], ['id', 'ASC']],
                 limit: size,
@@ -91,7 +93,7 @@ export class rMaster {
             const model = this._.sequel.models[table_name]
 
             const item = await model.findOne({
-                where: { src: slave_name },
+                where: this.kv.hasOwnProperty(slave_name) ? { src: slave_name, updatedAt: { [Op.gte]: this.kv[slave_name].updatedAt } } : { src: slave_name },
                 order: [['updatedAt', 'DESC'], ['id', 'DESC']],
                 raw: true
             })
@@ -100,6 +102,8 @@ export class rMaster {
                 id: item?.id ?? '',
                 updatedAt: item?.updatedAt ?? '',
             }
+
+            if (item?.id && item?.updatedAt) this.kv[slave_name] = last
 
             console.log(`[M] Get_last:   [${key}|${table_name}|${slave_name}]`)
             console.log(`[M] Get_last:   Found [${last.id},${last.updatedAt}]`)
