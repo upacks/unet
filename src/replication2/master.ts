@@ -31,16 +31,55 @@ export class rMaster {
 
         this._.api.io.on('connection', (socket) => {
 
-            socket.on('get_items', this.get_items)
             socket.on('get_last', this.get_last)
+            socket.on('get_items', this.get_items)
             socket.on('send_items', this.send_items)
 
         })
 
     }
 
+    /** Slave request: Checkpoint of slave */
+    get_last = async (data, callback) => {
+
+        let start = Date.now()
+
+        try {
+
+            let { key, table_name, slave_name } = unzip(data)
+            if (demo) table_name = 'rep_master' /** Must be remove before production */
+
+            const model = this._.sequel.models[table_name]
+
+            const item = await model.findOne({
+                where: this.kv.hasOwnProperty(slave_name) ? { src: slave_name, updatedAt: { [Op.gte]: this.kv[slave_name].updatedAt } } : { src: slave_name },
+                order: [['updatedAt', 'DESC'], ['id', 'DESC']],
+                raw: true
+            })
+
+            const last = {
+                id: item?.id ?? '',
+                updatedAt: item?.updatedAt ?? '',
+            }
+
+            if (item?.id && item?.updatedAt) this.kv[slave_name] = last
+
+            console.log(`[M] Get_last:   FROM ${slave_name} TO ${table_name} (${Date.now() - start}ms`)
+            callback(zip({ status: true, data: last }))
+
+        } catch (err) {
+
+            console.error(`[M] Get_last:   ${err.message}  (${Date.now() - start}ms`)
+            callback(zip({ status: false, message: err.message }))
+
+        }
+
+    }
+
     /** Slave request: Items according to checkpoint */
     get_items = async (data, callback) => {
+
+        let start = Date.now()
 
         try {
 
@@ -69,49 +108,12 @@ export class rMaster {
             // Cleaning the payload of deleted items
             for (const x of items) if (x.deletedAt !== null) x.data = null
 
-            console.log(`[M] Get_items:  [${key}|${table_name}|${slave_name}] [${id},${updatedAt},${size}]`)
-            console.log(`[M] Get_items:  Found [${items?.length}] item(s)`)
+            console.log(`[M] Get_items:  FROM ${slave_name} TO ${table_name} ITEMS ${items?.length} (${Date.now() - start}ms`)
             callback(zip({ status: true, data: items }))
 
         } catch (err) {
 
-            console.log(`[M] Get_items:  ${err.message}`)
-            callback(zip({ status: false, message: err.message }))
-
-        }
-
-    }
-
-    /** Slave request: Checkpoint of slave */
-    get_last = async (data, callback) => {
-
-        try {
-
-            let { key, table_name, slave_name } = unzip(data)
-            if (demo) table_name = 'rep_master' /** Must be remove before production */
-
-            const model = this._.sequel.models[table_name]
-
-            const item = await model.findOne({
-                where: this.kv.hasOwnProperty(slave_name) ? { src: slave_name, updatedAt: { [Op.gte]: this.kv[slave_name].updatedAt } } : { src: slave_name },
-                order: [['updatedAt', 'DESC'], ['id', 'DESC']],
-                raw: true
-            })
-
-            const last = {
-                id: item?.id ?? '',
-                updatedAt: item?.updatedAt ?? '',
-            }
-
-            if (item?.id && item?.updatedAt) this.kv[slave_name] = last
-
-            console.log(`[M] Get_last:   [${key}|${table_name}|${slave_name}]`)
-            console.log(`[M] Get_last:   Found [${last.id},${last.updatedAt}]`)
-            callback(zip({ status: true, data: last }))
-
-        } catch (err) {
-
-            console.log(`[M] Get_last:   ${err.message}`)
+            console.error(`[M] Get_items:  ${err.message} (${Date.now() - start}ms`)
             callback(zip({ status: false, message: err.message }))
 
         }
@@ -120,6 +122,8 @@ export class rMaster {
 
     /** Slave request: Sending items according to checkpoint */
     send_items = async (data, callback) => {
+
+        let start = Date.now()
 
         try {
 
@@ -132,12 +136,12 @@ export class rMaster {
 
             for (const x of items) await model.upsert(x)
 
-            console.log(`[M] Send_items: Saved [${items.length}]`)
+            console.log(`[M] Save_items: FROM ${slave_name} TO ${table_name} ITEMS ${items.length} (${Date.now() - start}ms`)
             callback(zip({ status: true, data: items.length ?? 0 }))
 
         } catch (err) {
 
-            console.log(`[M] Send_items: ${err.message}`)
+            console.error(`[M] Save_items: ${err.message} (${Date.now() - start}ms`)
             callback(zip({ status: false, message: err.message }))
 
         }
