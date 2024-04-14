@@ -42,7 +42,7 @@ export class rMaster {
     /** Slave request: Checkpoint of slave */
     get_last = async (data, callback) => {
 
-        const key = `GET:LAST${ushort()}`
+        const key = `GET:LAST:${ushort()}`
 
         try {
 
@@ -76,7 +76,7 @@ export class rMaster {
     /** Slave request: Items according to checkpoint */
     get_items = async (data, callback) => {
 
-        const key = `GET:ITEMS${ushort()}`
+        const key = `GET:ITEMS:${ushort()}`
 
         try {
 
@@ -117,7 +117,7 @@ export class rMaster {
     /** Slave request: Sending items according to checkpoint */
     send_items = async (data, callback) => {
 
-        const key = `SAVE:ITEMS${ushort()}`
+        const key = `SAVE:ITEMS:${ushort()}`
 
         try {
 
