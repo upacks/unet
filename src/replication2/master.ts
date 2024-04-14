@@ -1,4 +1,4 @@
-import { log } from 'utils'
+import { log, ulog, ushort } from 'utils'
 import { zip, unzip } from './common'
 import { Host } from '../host'
 import { Op } from '../util'
@@ -42,15 +42,15 @@ export class rMaster {
     /** Slave request: Checkpoint of slave */
     get_last = async (data, callback) => {
 
-        let start = Date.now()
+        const key = `GET:LAST${ushort()}`
 
         try {
 
-            let { key, table_name, slave_name } = unzip(data)
+            let { table_name, slave_name } = unzip(data)
+            ulog(key, 'req', `${slave_name} latest value of ${table_name}`)
+
             if (demo) table_name = 'rep_master' /** Must be remove before production */
-
             const model = this._.sequel.models[table_name]
-
             const item = await model.findOne({
                 where: this.kv.hasOwnProperty(slave_name) ?
                     { src: slave_name, updatedAt: { [Op.gte]: this.kv[slave_name].updatedAt } } :
@@ -58,16 +58,15 @@ export class rMaster {
                 order: [['updatedAt', 'DESC'], ['id', 'DESC']],
                 raw: true
             })
-
             const last = { id: item?.id ?? '', updatedAt: item?.updatedAt ?? '' }
             if (item?.id && item?.updatedAt) this.kv[slave_name] = last
 
-            console.log(`[M] Get_last:   FROM ${slave_name} TO ${table_name} ITEMS - (${Date.now() - start}ms)`)
+            ulog(key, 'then', `Found ${last.updatedAt}`, 'cloud', 'db')
             callback(zip({ status: true, data: last }))
 
         } catch (err) {
 
-            console.error(`[M] Get_last:   ${err.message}  (${Date.now() - start}ms)`)
+            ulog(key, 'catch', err.message, 'cloud', 'vehicle')
             callback(zip({ status: false, message: err.message }))
 
         }
@@ -77,15 +76,15 @@ export class rMaster {
     /** Slave request: Items according to checkpoint */
     get_items = async (data, callback) => {
 
-        let start = Date.now()
+        const key = `GET:ITEMS${ushort()}`
 
         try {
 
-            let { key, table_name, slave_name, last: { id, updatedAt }, size } = unzip(data)
+            let { table_name, slave_name, last: { id, updatedAt }, size } = unzip(data)
+            ulog(key, 'req', `${slave_name} requesting items from ${table_name}`)
 
             if (demo) table_name = 'rep_master' /** Must be remove before production */
             const model = this._.sequel.models[table_name]
-
             // N-Items from Master to Slave
             const items = await model.findAll({
                 where: {
@@ -100,16 +99,15 @@ export class rMaster {
                 limit: size,
                 raw: true,
             })
-
             // Cleaning the payload of deleted items
             for (const x of items) if (x.deletedAt !== null) x.data = null
 
-            console.log(`[M] Get_items:  FROM ${slave_name} TO ${table_name} ITEMS ${items?.length} (${Date.now() - start}ms)`)
+            ulog(key, 'then', `Found ${items?.length} items`, 'cloud', 'db')
             callback(zip({ status: true, data: items }))
 
         } catch (err) {
 
-            console.error(`[M] Get_items:  ${err.message} (${Date.now() - start}ms)`)
+            ulog(key, 'catch', err.message, 'cloud', 'vehicle')
             callback(zip({ status: false, message: err.message }))
 
         }
@@ -119,25 +117,24 @@ export class rMaster {
     /** Slave request: Sending items according to checkpoint */
     send_items = async (data, callback) => {
 
-        let start = Date.now()
+        const key = `SAVE:ITEMS${ushort()}`
 
         try {
 
-            let { key, table_name, slave_name, items } = unzip(data)
+            let { table_name, slave_name, items } = unzip(data)
+            ulog(key, 'req', `${slave_name} is upserting into ${table_name}`)
+
             if (demo) table_name = 'rep_master' /** Must be remove before production */
-
             const model = this._.sequel.models[table_name]
-
             this.cb && this.cb(table_name, slave_name)
-
             for (const x of items) await model.upsert(x)
 
-            console.log(`[M] Save_items: FROM ${slave_name} TO ${table_name} ITEMS ${items.length} (${Date.now() - start}ms)`)
+            ulog(key, 'then', `Saved ${items?.length} items`, 'cloud', 'db')
             callback(zip({ status: true, data: items.length ?? 0 }))
 
         } catch (err) {
 
-            console.error(`[M] Save_items: ${err.message} (${Date.now() - start}ms)`)
+            ulog(key, 'catch', err.message, 'cloud', 'vehicle')
             callback(zip({ status: false, message: err.message }))
 
         }
