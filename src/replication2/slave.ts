@@ -75,7 +75,7 @@ export class rSlave {
                 where: this.kv.hasOwnProperty(slave_name) ?
                     { src: { [Op.not]: slave_name }, updatedAt: { [Op.gte]: this.kv[slave_name].updatedAt } } :
                     { src: { [Op.not]: slave_name } },
-                order: [['updatedAt', 'DESC'], ['id', 'DESC']],
+                order: [['updatedAt', 'id', 'DESC']],
                 raw: true
             })
 
@@ -160,7 +160,7 @@ export class rSlave {
                         { id: { [Op.gt]: id }, updatedAt: { [Op.eq]: updatedAt } }
                     ]
                 },
-                order: [['updatedAt', 'ASC'], ['id', 'ASC']],
+                order: [['updatedAt', 'id', 'ASC']],
                 limit: size,
                 raw: true,
             })

@@ -55,7 +55,7 @@ export class rMaster {
                 where: this.kv.hasOwnProperty(slave_name) ?
                     { src: slave_name, updatedAt: { [Op.gte]: this.kv[slave_name].updatedAt } } :
                     { src: slave_name },
-                order: [['updatedAt', 'DESC'], ['id', 'DESC']],
+                order: [['updatedAt', 'id', 'DESC']],
                 raw: true
             })
             const last = { id: item?.id ?? '', updatedAt: item?.updatedAt ?? '' }
@@ -95,7 +95,7 @@ export class rMaster {
                         { id: { [Op.gt]: id }, updatedAt: { [Op.eq]: updatedAt } }
                     ]
                 },
-                order: [['updatedAt', 'ASC'], ['id', 'ASC']],
+                order: [['updatedAt', 'id', 'ASC']],
                 limit: size,
                 raw: true,
             })
