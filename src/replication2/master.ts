@@ -56,7 +56,7 @@ export class rMaster {
                     { src: slave_name, updatedAt: { [Op.gte]: this.kv[slave_name].updatedAt } } :
                     { src: slave_name },
                 // order: [['updatedAt', 'id', 'DESC']],
-                order: [['updatedAt', this._.sequel.literal(','), 'id', 'DESC']],
+                order: [[this._.sequel.literal(`"${table_name}"."updatedAt", "${table_name}"."id" DESC`)]],
                 raw: true
             })
             const last = { id: item?.id ?? '', updatedAt: item?.updatedAt ?? '' }
@@ -97,7 +97,7 @@ export class rMaster {
                     ]
                 },
                 // order: [['updatedAt', 'id', 'ASC']],
-                order: [['updatedAt', this._.sequel.literal(','), 'id', 'ASC']],
+                order: [[this._.sequel.literal(`"${table_name}"."updatedAt", "${table_name}"."id" ASC`)]],
                 limit: size,
                 raw: true,
             })
