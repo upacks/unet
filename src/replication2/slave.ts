@@ -69,14 +69,15 @@ export class rSlave {
     pull = /** PULL METHOD */ {
 
         /** from Local */
-        get_last: async ({ model, table_name, slave_name, retain, logs }, { }) => {
+        get_last: async ({ model, table_name, slave_name, retain }, { }) => {
 
             const item = await model.findOne({
                 where: this.kv.hasOwnProperty(slave_name) ?
                     { src: { [Op.not]: slave_name }, updatedAt: { [Op.gte]: this.kv[slave_name].updatedAt } } :
-                    { src: { [Op.not]: slave_name } },
-                // order: [['updatedAt', 'id', 'DESC']],
-                order: [[this._.sequel.literal(`"${table_name}"."updatedAt", "${table_name}"."id" DESC`)]],
+                    { src: { [Op.not]: slave_name }, updatedAt: { [Op.gte]: moment().add('days', -90).format(dateFormat) } },
+                // { src: slave_name, updatedAt: { [Op.gte]: moment().add('days', -90).format(dateFormat) } },
+                // order: [[this._.sequel.literal(`"${table_name}"."updatedAt", "${table_name}"."id" DESC`)]],
+                order: [['updatedAt', 'DESC'], ['id', 'DESC']],
                 raw: true
             })
 
@@ -161,8 +162,8 @@ export class rSlave {
                         { id: { [Op.gt]: id }, updatedAt: { [Op.eq]: updatedAt } }
                     ]
                 },
-                // order: [['updatedAt', 'id', 'ASC']],
-                order: [[this._.sequel.literal(`"${table_name}"."updatedAt", "${table_name}"."id" ASC`)]],
+                // order: [[this._.sequel.literal(`"${table_name}"."updatedAt", "${table_name}"."id" ASC`)]],
+                order: [['updatedAt', 'ASC'], ['id', 'ASC']],
                 limit: size,
                 raw: true,
             })

@@ -1,4 +1,4 @@
-import { log, ulog, ushort } from 'utils'
+import { log, ulog, ushort, moment, dateFormat } from 'utils'
 import { zip, unzip } from './common'
 import { Host } from '../host'
 import { Op, literal } from '../util'
@@ -54,9 +54,9 @@ export class rMaster {
             const item = await model.findOne({
                 where: this.kv.hasOwnProperty(slave_name) ?
                     { src: slave_name, updatedAt: { [Op.gte]: this.kv[slave_name].updatedAt } } :
-                    { src: slave_name },
-                // order: [['updatedAt', 'id', 'DESC']],
-                order: [[this._.sequel.literal(`"${table_name}"."updatedAt", "${table_name}"."id" DESC`)]],
+                    { src: slave_name, updatedAt: { [Op.gte]: moment().add('days', -90).format(dateFormat) } },
+                // order: [[this._.sequel.literal(`"${table_name}"."updatedAt", "${table_name}"."id" DESC`)]],
+                order: [['updatedAt', 'DESC'], ['id', 'DESC']],
                 raw: true
             })
             const last = { id: item?.id ?? '', updatedAt: item?.updatedAt ?? '' }
@@ -96,8 +96,8 @@ export class rMaster {
                         { id: { [Op.gt]: id }, updatedAt: { [Op.eq]: updatedAt } }
                     ]
                 },
-                // order: [['updatedAt', 'id', 'ASC']],
-                order: [[this._.sequel.literal(`"${table_name}"."updatedAt", "${table_name}"."id" ASC`)]],
+                // order: [[this._.sequel.literal(`"${table_name}"."updatedAt", "${table_name}"."id" ASC`)]],
+                order: [['updatedAt', 'ASC'], ['id', 'ASC']],
                 limit: size,
                 raw: true,
             })
