@@ -1,7 +1,7 @@
 import { log, ulog, ushort } from 'utils'
 import { zip, unzip } from './common'
 import { Host } from '../host'
-import { Op } from '../util'
+import { Op, literal } from '../util'
 
 interface iRM {
 
@@ -55,7 +55,8 @@ export class rMaster {
                 where: this.kv.hasOwnProperty(slave_name) ?
                     { src: slave_name, updatedAt: { [Op.gte]: this.kv[slave_name].updatedAt } } :
                     { src: slave_name },
-                order: [['updatedAt', 'id', 'DESC']],
+                // order: [['updatedAt', 'id', 'DESC']],
+                order: [[literal('updatedAt, id'), 'desc']],
                 raw: true
             })
             const last = { id: item?.id ?? '', updatedAt: item?.updatedAt ?? '' }
@@ -95,7 +96,8 @@ export class rMaster {
                         { id: { [Op.gt]: id }, updatedAt: { [Op.eq]: updatedAt } }
                     ]
                 },
-                order: [['updatedAt', 'id', 'ASC']],
+                // order: [['updatedAt', 'id', 'ASC']],
+                order: [[literal('updatedAt, id'), 'asc']],
                 limit: size,
                 raw: true,
             })

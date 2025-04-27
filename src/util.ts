@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken'
 import { PackageExists, env } from 'utils'
 
-export const { Op, Sequelize }: any = PackageExists('sequelize') ? require('sequelize') : { Op: {}, Sequelize: {} }
+export const { Op, Sequelize, literal }: any = PackageExists('sequelize') ? require('sequelize') : { Op: {}, Sequelize: {}, literal: {} }
 
 export const isAsync = (p: any) => p && (p.constructor.name === "AsyncFunction" || (typeof p === 'object' && typeof p.then === 'function'))
 

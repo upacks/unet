@@ -1,7 +1,7 @@
 import { Loop, AsyncWait, Safe, moment, dateFormat, log } from 'utils'
 import { zip, unzip } from './common'
 import { Connection } from '../connection'
-import { Op } from '../util'
+import { Op, literal } from '../util'
 
 type tDirection = 'bidirectional' | 'pull-only' | 'push-only'
 
@@ -75,7 +75,8 @@ export class rSlave {
                 where: this.kv.hasOwnProperty(slave_name) ?
                     { src: { [Op.not]: slave_name }, updatedAt: { [Op.gte]: this.kv[slave_name].updatedAt } } :
                     { src: { [Op.not]: slave_name } },
-                order: [['updatedAt', 'id', 'DESC']],
+                // order: [['updatedAt', 'id', 'DESC']],
+                order: [[literal('updatedAt, id'), 'desc']],
                 raw: true
             })
 
@@ -160,7 +161,8 @@ export class rSlave {
                         { id: { [Op.gt]: id }, updatedAt: { [Op.eq]: updatedAt } }
                     ]
                 },
-                order: [['updatedAt', 'id', 'ASC']],
+                // order: [['updatedAt', 'id', 'ASC']],
+                order: [[literal('updatedAt, id'), 'asc']],
                 limit: size,
                 raw: true,
             })
