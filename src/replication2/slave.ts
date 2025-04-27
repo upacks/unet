@@ -76,7 +76,7 @@ export class rSlave {
                     { src: { [Op.not]: slave_name }, updatedAt: { [Op.gte]: this.kv[slave_name].updatedAt } } :
                     { src: { [Op.not]: slave_name } },
                 // order: [['updatedAt', 'id', 'DESC']],
-                order: [['updatedAt', literal(','), 'id', 'DESC']],
+                order: [['updatedAt', this._.sequel.literal(','), 'id', 'DESC']],
                 raw: true
             })
 
@@ -162,7 +162,7 @@ export class rSlave {
                     ]
                 },
                 // order: [['updatedAt', 'id', 'ASC']],
-                order: [['updatedAt', literal(','), 'id', 'ASC']],
+                order: [['updatedAt', this._.sequel.literal(','), 'id', 'ASC']],
                 limit: size,
                 raw: true,
             })
