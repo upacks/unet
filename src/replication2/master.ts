@@ -1,7 +1,7 @@
-import { log, ulog, ushort, moment, dateFormat } from 'utils'
+import { log, ulog, Now, ushort, moment, dateFormat } from 'utils'
 import { zip, unzip } from './common'
 import { Host } from '../host'
-import { Op, literal } from '../util'
+import { Op } from '../util'
 
 interface iRM {
 
@@ -54,7 +54,7 @@ export class rMaster {
             const item = await model.findOne({
                 where: this.kv.hasOwnProperty(slave_name) ?
                     { src: slave_name, updatedAt: { [Op.gte]: this.kv[slave_name].updatedAt } } :
-                    { src: slave_name, updatedAt: { [Op.gte]: moment().add('days', -90).format(dateFormat) } },
+                    { src: slave_name, updatedAt: { [Op.gte]: moment().add(-90, 'days').format(dateFormat) } },
                 // order: [[this._.sequel.literal(`"${table_name}"."updatedAt", "${table_name}"."id" DESC`)]],
                 order: [['updatedAt', 'DESC'], ['id', 'DESC']],
                 raw: true
@@ -129,7 +129,7 @@ export class rMaster {
             if (demo) table_name = 'rep_master' /** Must be remove before production */
             const model = this._.sequel.models[table_name]
             this.cb && this.cb(table_name, slave_name)
-            for (const x of items) await model.upsert(x)
+            for (const x of items) await model.upsert({ ...x, createdAt: Now() })
 
             ulog(key, 'then', `Saved ${items?.length} items`, 'cloud', 'db')
             callback(zip({ status: true, data: items.length ?? 0 }))

@@ -1,7 +1,7 @@
-import { Loop, AsyncWait, Safe, moment, dateFormat, log } from 'utils'
+import { Now, Loop, AsyncWait, Safe, moment, dateFormat, log } from 'utils'
 import { zip, unzip } from './common'
 import { Connection } from '../connection'
-import { Op, literal } from '../util'
+import { Op } from '../util'
 
 type tDirection = 'bidirectional' | 'pull-only' | 'push-only'
 
@@ -74,7 +74,7 @@ export class rSlave {
             const item = await model.findOne({
                 where: this.kv.hasOwnProperty(slave_name) ?
                     { src: { [Op.not]: slave_name }, updatedAt: { [Op.gte]: this.kv[slave_name].updatedAt } } :
-                    { src: { [Op.not]: slave_name }, updatedAt: { [Op.gte]: moment().add('days', -90).format(dateFormat) } },
+                    { src: { [Op.not]: slave_name }, updatedAt: { [Op.gte]: moment().add(-90, 'days').format(dateFormat) } },
                 // { src: slave_name, updatedAt: { [Op.gte]: moment().add('days', -90).format(dateFormat) } },
                 // order: [[this._.sequel.literal(`"${table_name}"."updatedAt", "${table_name}"."id" DESC`)]],
                 order: [['updatedAt', 'DESC'], ['id', 'DESC']],
@@ -116,7 +116,7 @@ export class rSlave {
         save_items: async ({ model, table_name, slave_name }, { pull_items }) => {
 
             this.cb && this.cb(table_name, slave_name)
-            for (const x of pull_items) await model.upsert(x)
+            for (const x of pull_items) await model.upsert({ ...x, createdAt: Now() })
             return 'Done'
 
         },
